@@ -4,18 +4,18 @@ import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.player.ServerPostConnectEvent;
-import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.ServerInfo;
 import lombok.RequiredArgsConstructor;
-import net.rageevent.myriad.overseer.api.ParcelConnection;
-import net.rageevent.myriad.overseer.parcels.network.PlayerJoinedNetwork;
-import net.rageevent.myriad.overseer.parcels.network.PlayerLeftNetwork;
-import net.rageevent.myriad.overseer.parcels.network.PlayerSwitchedServer;
-import net.rageevent.myriad.overseer.parcels.network.ProxyRoster;
-import net.rageevent.myriad.overseer.protocol.ConnectionListener;
+import net.rageevent.governor.api.ControlUnit;
+import net.rageevent.governor.api.EnvelopeConnection;
+import net.rageevent.governor.api.protocol.ConnectionListener;
+import net.rageevent.governor.api.shipments.network.player.PlayerJoinedNetwork;
+import net.rageevent.governor.api.shipments.network.player.PlayerLeftNetwork;
+import net.rageevent.governor.api.shipments.network.player.PlayerSwitchedServer;
+import net.rageevent.governor.api.shipments.network.player.ProxyRoster;
 
 import java.util.List;
 
@@ -29,7 +29,7 @@ public class PlayerSync implements ConnectionListener {
     @Subscribe
     public void onLogin(PostLoginEvent event) {
         Player player = event.getPlayer();
-        controlUnit.send(new PlayerJoinedNetwork(player.getUniqueId(), player.getUsername(), currentServer(player)));
+        controlUnit.deliver(new PlayerJoinedNetwork(player.getUniqueId(), player.getUsername(), currentServer(player)));
     }
 
     @Subscribe
@@ -37,21 +37,21 @@ public class PlayerSync implements ConnectionListener {
         Player player = event.getPlayer();
         String server = currentServer(player);
         if (server == null) return;
-        controlUnit.send(new PlayerSwitchedServer(player.getUniqueId(), server));
+        controlUnit.deliver(new PlayerSwitchedServer(player.getUniqueId(), server));
     }
 
     @Subscribe
     public void onDisconnect(DisconnectEvent event) {
         Player player = event.getPlayer();
-        controlUnit.send(new PlayerLeftNetwork(player.getUniqueId()));
+        controlUnit.deliver(new PlayerLeftNetwork(player.getUniqueId()));
     }
 
     @Override
-    public void onReady(ParcelConnection connection) {
-        List<ProxyRoster.Entry> roster = proxyServer.getAllPlayers().stream()
-                .map(player -> new ProxyRoster.Entry(player.getUniqueId(), player.getUsername(), currentServer(player)))
+    public void ready(EnvelopeConnection connection) {
+        List<ProxyRoster.UserEntry> roster = proxyServer.getAllPlayers().stream()
+                .map(player -> new ProxyRoster.UserEntry(player.getUniqueId(), player.getUsername(), currentServer(player)))
                 .toList();
-        controlUnit.send(new ProxyRoster(roster));
+        controlUnit.deliver(new ProxyRoster(roster));
     }
 
     private static String currentServer(Player player) {

@@ -1,0 +1,6 @@
+{
+  "id": "myriad-proxy",
+  "name": "myriad-proxy",
+  "version": "${version}",
+  "main": "net.rageevent.myriad.MyriadProxy"
+}

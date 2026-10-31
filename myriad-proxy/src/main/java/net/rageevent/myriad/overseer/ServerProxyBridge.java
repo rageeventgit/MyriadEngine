@@ -9,11 +9,13 @@ import lombok.RequiredArgsConstructor;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.rageevent.governor.api.EnvelopeAgent;
+import net.rageevent.governor.api.EnvelopeCarrier;
+import net.rageevent.governor.api.shipments.network.player.TransferPlayerRequest;
+import net.rageevent.governor.api.shipments.network.player.TransferResult;
+import net.rageevent.governor.api.shipments.network.server.RegisterGameServer;
+import net.rageevent.governor.api.shipments.network.server.RemoveGameServer;
 import net.rageevent.myriad.Text;
-import net.rageevent.myriad.overseer.api.ParcelHandlers;
-import net.rageevent.myriad.overseer.api.ParcelModule;
-import net.rageevent.myriad.overseer.api.PlayerNotice;
-import net.rageevent.myriad.overseer.parcels.network.*;
 import net.rageevent.myriad.server.ServerType;
 
 import java.net.InetSocketAddress;
@@ -26,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 @RequiredArgsConstructor
-public class ServerProxyBridge implements ParcelModule {
+public class ServerProxyBridge implements EnvelopeCarrier {
 
     private final ProxyServer proxyServer;
     private final ComponentLogger logger;
@@ -36,15 +38,15 @@ public class ServerProxyBridge implements ParcelModule {
     private final Map<String, ServerType> groups = new ConcurrentHashMap<>();
 
     @Override
-    public void register(ParcelHandlers parcelHandlers) {
-        parcelHandlers.onRequestAsync(TransferPlayerRequest.class, (hub, request) -> transfer(request))
-                .on(ServerAdded.class, (hub, added) -> addServer(added))
-                .on(ServerRemoved.class, (hub, removed) -> removeServer(removed));
+    public void register(EnvelopeAgent parcelHandlers) {
+        parcelHandlers.onAsyncTransaction(TransferPlayerRequest.class, (_, request) -> transfer(request))
+                .on(RegisterGameServer.class, (_, added) -> addServer(added))
+                .on(RemoveGameServer.class, (_, removed) -> removeServer(removed));
 
 
     }
 
-    private void removeServer(ServerRemoved removed) {
+    private void removeServer(RemoveGameServer removed) {
         String removedName = removed.name();
         groups.remove(removedName);
         if (!registeredByUs.remove(removedName)) return;
@@ -55,9 +57,9 @@ public class ServerProxyBridge implements ParcelModule {
                 logger.warn(Text.convert("<red>Couldn't find a server with name <yellow>'%s'</yellow>.".formatted(removedName))));
     }
 
-    private void addServer(ServerAdded added) {
+    private void addServer(RegisterGameServer added) {
         String addedServerName = added.name();
-        ServerType addedServerGroup = added.group();
+        ServerType addedServerGroup = added.serverType();
         groups.put(addedServerName, addedServerGroup);
 
         if (added.host() == null || proxyServer.getServer(addedServerName).isPresent()) {
@@ -80,27 +82,27 @@ public class ServerProxyBridge implements ParcelModule {
 
         return server.map(registeredServer -> player.get().createConnectionRequest(registeredServer).connect()
                         .thenApply(result -> toTransferResult(result, serverName))
-                        .exceptionally(error -> TransferResult.of(TransferResult.Status.FAILED, request.server(), error.getMessage())))
+                        .exceptionally(error -> new TransferResult(TransferResult.Status.FAILED, request.server(), error.getMessage())))
                 .orElseGet(() -> done(TransferResult.Status.UNKNOWN_SERVER, serverName, "No server found."));
     }
 
     private TransferResult toTransferResult(ConnectionRequestBuilder.Result result, String server) {
         return switch (result.getStatus()) {
-            case SUCCESS -> TransferResult.of(TransferResult.Status.SUCCESS, server, null);
-            case ALREADY_CONNECTED -> TransferResult.of(TransferResult.Status.ALREADY_CONNECTED, server, null);
+            case SUCCESS -> new TransferResult(TransferResult.Status.SUCCESS, server, null);
+            case ALREADY_CONNECTED -> new TransferResult(TransferResult.Status.ALREADY_CONNECTED, server, null);
             case CONNECTION_IN_PROGRESS ->
-                    TransferResult.of(TransferResult.Status.FAILED, server, "Already connecting to a server");
+                    new TransferResult(TransferResult.Status.FAILED, server, "Already connecting to a server");
             case CONNECTION_CANCELLED ->
-                    TransferResult.of(TransferResult.Status.FAILED, server, "Connection cancelled");
+                    new TransferResult(TransferResult.Status.FAILED, server, "Connection cancelled");
             case SERVER_DISCONNECTED ->
-                    TransferResult.of(TransferResult.Status.FAILED, server, result.getReasonComponent()
+                    new TransferResult(TransferResult.Status.FAILED, server, result.getReasonComponent()
                             .map(reason -> PlainTextComponentSerializer.plainText().serialize(reason))
                             .orElse("Disconnected by the server"));
         };
     }
 
     private CompletableFuture<TransferResult> done(TransferResult.Status status, String server, String detail) {
-        return CompletableFuture.completedFuture(TransferResult.of(status, server, detail));
+        return CompletableFuture.completedFuture(new TransferResult(status, server, detail));
     }
 
     private Optional<Player> player(UUID uuid) {
