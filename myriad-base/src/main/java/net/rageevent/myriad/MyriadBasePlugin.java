@@ -6,11 +6,10 @@ import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import lombok.Getter;
 import lombok.SneakyThrows;
+import net.rageevent.governor.api.ControlUnit;
+import net.rageevent.governor.api.server.ServerProfile;
 import net.rageevent.myriad.commands.GameCommandNodes;
 import net.rageevent.myriad.interals.FlagParser;
-import net.rageevent.myriad.overseer.ControlUnit;
-import net.rageevent.myriad.overseer.parcels.network.ServerProfile;
-import net.rageevent.myriad.overseer.parcels.network.ServerRemoved;
 import net.rageevent.myriad.server.GameType;
 import net.rageevent.myriad.server.LobbyType;
 import net.rageevent.myriad.server.ServerType;
@@ -87,6 +86,6 @@ public final class MyriadBasePlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        controlUnit.disconnect();
+        controlUnit.close();
     }
 }

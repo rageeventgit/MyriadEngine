@@ -24,6 +24,19 @@
         <defaultGoal>clean package</defaultGoal>
         <plugins>
             <plugin>
+                <groupId>dev.lotus</groupId>
+                <artifactId>lotus-maven-plugin</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>transform</goal>
+                            <goal>transform-test</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.16.0</version>
@@ -82,9 +95,19 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>net.rageevent.myriad</groupId>
-            <artifactId>OverseerAPI</artifactId>
-            <version>${overseer.version}</version>
+            <groupId>net.rageevent.governor</groupId>
+            <artifactId>GovernorAPI</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.crownrealm</groupId>
+            <artifactId>conduit-api</artifactId>
+            <version>0.1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.lotus</groupId>
+            <artifactId>lotus-annotations</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>

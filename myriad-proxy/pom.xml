@@ -89,6 +89,19 @@
         </resources>
         <plugins>
             <plugin>
+                <groupId>dev.lotus</groupId>
+                <artifactId>lotus-maven-plugin</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>transform</goal>
+                            <goal>transform-test</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>3.6.2</version>
@@ -173,6 +186,11 @@
             <groupId>io.github.crownrealm</groupId>
             <artifactId>conduit-api</artifactId>
             <version>0.1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.lotus</groupId>
+            <artifactId>lotus-annotations</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>

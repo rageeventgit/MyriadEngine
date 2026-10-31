@@ -44,10 +44,10 @@ public class MyriadProxy {
 
         controlUnit.connect().whenComplete(((parcelConnection, throwable) -> {
             if (throwable != null) {
-                logger.error(Text.convert("<red>%s <gray>(%s)".formatted(throwable.getLocalizedMessage(), throwable.getClass().getSimpleName())));
+                logger.error(Text.convert("<red>${throwable.getLocalizedMessage()} <gray>(${throwable.getClass().getSimpleName()})"));
                 return;
             }
-            logger.debug(Text.convert("<green>Successfully connect to <blue>Overseer</blue>. <gray>(%s)".formatted(parcelConnection.name())));
+            logger.debug(Text.convert("<green>Successfully connect to <yellow>Governor</yellow>. <gray>(${parcelConnection.name()})"));
         }));
 
         proxyServer.getEventManager().register(this, new PlayerSync(proxyServer,controlUnit));
