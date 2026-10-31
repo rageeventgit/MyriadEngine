@@ -10,6 +10,8 @@
     <packaging>pom</packaging>
     <modules>
         <module>myriad-common</module>
+        <module>myriad-base</module>
+        <module>myriad-proxy</module>
     </modules>
 
     <properties>
@@ -17,7 +19,4 @@
         <maven.compiler.target>27</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-    <dependencies>
-
-    </dependencies>
 </project>
