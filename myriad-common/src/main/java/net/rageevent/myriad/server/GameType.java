@@ -9,14 +9,7 @@ import lombok.experimental.Accessors;
 @Getter
 public enum GameType implements ServerType{
 
-    /**
-       Old game type name, please update to {@link GameType#BEAST_HUNT} references.
-     */
-    @Deprecated
-    FLEE_THE_FACILITY("Flee the Facility", "BeastHunt"),
-
     BEAST_HUNT("Flee the Facility","BeastHunt")
-
     ;
 
     private final String visualName;

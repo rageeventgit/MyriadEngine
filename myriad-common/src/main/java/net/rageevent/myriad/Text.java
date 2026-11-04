@@ -3,7 +3,6 @@ package net.rageevent.myriad;
 import lombok.experimental.UtilityClass;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -11,8 +10,8 @@ import net.kyori.adventure.text.minimessage.tag.Tag;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.rageevent.myriad.format.Symbol;
 import net.rageevent.myriad.format.TextFormatHolder;
+import net.rageevent.myriad.player.UserRank;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +23,7 @@ public class Text {
 
     public void initialize(List<TextFormatHolder> textFormatHolders) {
         textFormatHolders.addAll(List.of(Symbol.values()));
+        textFormatHolders.addAll(List.of(UserRank.values()));
         miniMessage = MiniMessage.builder().tags(buildResolver(textFormatHolders)).build();
     }
 
@@ -60,7 +60,7 @@ public class Text {
     @SuppressWarnings("PatternValidation")
     private void categorizeFormats(TagResolver.Builder resolver, List<TextFormatHolder> textFormatHolders, Map<String, Map<String, TextFormatHolder>> categoryMap) {
         for (TextFormatHolder textFormatHolder : textFormatHolders) {
-            String formatName = textFormatHolder.name().toLowerCase();
+            String formatName = textFormatHolder.dub().toLowerCase();
             String textSymbol = textFormatHolder.symbol();
             TextColor symbolColor = textFormatHolder.color();
 

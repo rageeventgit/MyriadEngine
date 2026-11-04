@@ -24,4 +24,9 @@ public enum Symbol implements TextFormatHolder {
     public boolean categorized() {
         return true;
     }
+
+    @Override
+    public String dub() {
+        return name();
+    }
 }

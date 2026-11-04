@@ -1,6 +1,7 @@
 package net.rageevent.myriad;
 
 import net.kyori.adventure.text.format.TextColor;
+import net.rageevent.myriad.server.ServerType;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -41,7 +42,6 @@ public class ThemeColor {
             int fieldModifiers = unregisteredColor.getModifiers();
             if (!(Modifier.isStatic(fieldModifiers) && Modifier.isFinal(fieldModifiers))) continue;
             unregisteredColor.setAccessible(true);
-
             try {
 
                 Object fieldObj = unregisteredColor.get(themeColorClass);

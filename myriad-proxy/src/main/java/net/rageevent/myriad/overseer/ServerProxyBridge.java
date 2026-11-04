@@ -42,8 +42,6 @@ public class ServerProxyBridge implements EnvelopeCarrier {
         parcelHandlers.onAsyncTransaction(TransferPlayerRequest.class, (_, request) -> transfer(request))
                 .on(RegisterGameServer.class, (_, added) -> addServer(added))
                 .on(RemoveGameServer.class, (_, removed) -> removeServer(removed));
-
-
     }
 
     private void removeServer(RemoveGameServer removed) {

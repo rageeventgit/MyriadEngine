@@ -25,4 +25,14 @@ public enum UserRank implements TextFormatHolder {
     ;
     private final String symbol;
     private final TextColor color;
+
+    @Override
+    public boolean categorized() {
+        return TextFormatHolder.super.categorized();
+    }
+
+    @Override
+    public String dub(){
+        return "RANK_${name()}";
+    }
 }

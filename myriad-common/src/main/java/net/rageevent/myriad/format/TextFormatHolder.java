@@ -5,7 +5,7 @@ import net.kyori.adventure.text.format.TextColor;
 public interface TextFormatHolder {
 
     String symbol();
-    String name();
+    String dub();
 
     /**
       To determine if a symbol has any specific text color needed, it cannot be overwritten.
@@ -20,5 +20,5 @@ public interface TextFormatHolder {
     default boolean categorized() {
         return false;
     }
-
+    
 }

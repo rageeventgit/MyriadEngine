@@ -34,7 +34,6 @@ public class GameCommandNodes {
                 })
                 .build();
     }
-
     private static Optional<Component> transferResult(TransferResult result) {
         return switch (result.status()) {
             case SUCCESS -> Optional.empty();

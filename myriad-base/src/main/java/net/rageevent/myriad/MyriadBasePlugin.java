@@ -12,6 +12,7 @@ import net.rageevent.myriad.commands.GameCommandNodes;
 import net.rageevent.myriad.interals.FlagParser;
 import net.rageevent.myriad.server.GameType;
 import net.rageevent.myriad.server.LobbyType;
+import net.rageevent.myriad.server.ServerModeType;
 import net.rageevent.myriad.server.ServerType;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
@@ -30,10 +31,6 @@ public final class MyriadBasePlugin extends JavaPlugin {
 
     private ControlUnit controlUnit;
 
-    private final List<ServerType> serverTypes = Stream.concat(
-            Stream.of(GameType.values()),
-            Stream.of(LobbyType.values())
-    ).collect(Collectors.toUnmodifiableList());
     private ServerManifest serverManifest;
 
     @SneakyThrows
@@ -53,18 +50,21 @@ public final class MyriadBasePlugin extends JavaPlugin {
 
         serverManifest = ServerManifest.read(serverDirectory);
 
-        Optional<ServerType> serverType = serverTypes.stream().filter(comparedType -> comparedType.id().equalsIgnoreCase(serverManifest.field("gametype", LobbyType.MAIN.name()))).findFirst();
+        Optional<ServerType> serverType = ServerType.TYPES.stream().filter(comparedType -> comparedType.id().equalsIgnoreCase(serverManifest.field("gametype", LobbyType.MAIN.name()))).findFirst();
         if (serverType.isEmpty()) {
             getComponentLogger().error(Text.convert("<red>Failed to find a valid gametype"));
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
+        Optional<ServerModeType> modeType =
+                ServerModeType.TYPES.stream()
+                        .filter(comparedType -> comparedType.name().equalsIgnoreCase(serverManifest.field("mode").orElse(null))).findFirst();
 
         getComponentLogger().debug(Text.convert("<yellow>Server Type: <aqua>" + serverType.get().id() + " " + serverType.get().visualName()));
 
-        ServerProfile serverProfile = ServerProfile.backend(serverType.get(), 25);
-        controlUnit = new ControlUnit(new ControlUnit.Connection(serverManifest.name(), hostConnection, hostPort), serverProfile);
+        ServerProfile serverProfile = ServerProfile.backend(serverType.get(), modeType.orElse(null), 25);
 
+        controlUnit = new ControlUnit(new ControlUnit.Connection(serverManifest.name(), hostConnection, hostPort), serverProfile);
         controlUnit.connect().whenComplete(((parcelConnection, throwable) -> {
             if (throwable != null) {
                 getComponentLogger().error(Text.convert("<red>%s <gray>(%s)".formatted(throwable.getLocalizedMessage(), throwable.getClass().getSimpleName())));
@@ -81,7 +81,6 @@ public final class MyriadBasePlugin extends JavaPlugin {
             Commands commands = event.registrar();
             commands.register(GameCommandNodes.lobbyNode(controlUnit));
         });
-
     }
 
     @Override
