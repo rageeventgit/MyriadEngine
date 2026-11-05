@@ -8,10 +8,12 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.Tag;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
+import net.kyori.adventure.text.minimessage.tag.standard.StandardTags;
 import net.rageevent.myriad.format.Symbol;
 import net.rageevent.myriad.format.TextFormatHolder;
 import net.rageevent.myriad.player.UserRank;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,12 +21,22 @@ import java.util.Map;
 @UtilityClass
 public class Text {
 
-    private MiniMessage miniMessage = MiniMessage.builder().build();
+    private volatile MiniMessage miniMessage = MiniMessage.builder()
+            .tags(StandardTags.decorations())
+            .build();
+    private final System.Logger LOGGER = System.getLogger(Text.class.getSimpleName());
+
+    // Normalized (lowercase, underscore) color names -> color, used for categorized color arguments.
+    private Map<String, TextColor> colorsByName = Map.of();
 
     public void initialize(List<TextFormatHolder> textFormatHolders) {
-        textFormatHolders.addAll(List.of(Symbol.values()));
-        textFormatHolders.addAll(List.of(UserRank.values()));
-        miniMessage = MiniMessage.builder().tags(buildResolver(textFormatHolders)).build();
+        List<TextFormatHolder> holders = new ArrayList<>(textFormatHolders);
+        holders.addAll(List.of(Symbol.values()));
+        holders.addAll(List.of(UserRank.values()));
+
+        miniMessage = MiniMessage.builder()
+                .tags(TagResolver.resolver(StandardTags.decorations(), buildResolver(holders)))
+                .build();
     }
 
     public Component convert(String text) {
@@ -38,18 +50,24 @@ public class Text {
     @SuppressWarnings("PatternValidation")
     private TagResolver buildResolver(List<TextFormatHolder> textFormatHolders) {
         TagResolver.Builder resolver = TagResolver.builder();
+        Map<String, TextColor> colors = new HashMap<>();
 
         for (Map.Entry<String, TextColor> textColorEntry : ThemeColor.COLOR_MAP.entrySet()) {
-            String colorName = textColorEntry.getKey();
+            String colorName = textColorEntry.getKey().toLowerCase();
             TextColor color = textColorEntry.getValue();
 
             Tag resolvedTag = Tag.styling(style -> style.color(color));
 
             resolver.tag(colorName, resolvedTag);
-
             if (colorName.contains("_"))
                 resolver.tag(colorName.replace("_", "-"), resolvedTag);
+
+            colors.put(colorName, color);
+
+            LOGGER.log(System.Logger.Level.DEBUG, "Registered Color: $colorName!");
         }
+        colorsByName = Map.copyOf(colors);
+
         Map<String, Map<String, TextFormatHolder>> categoryMap = new HashMap<>();
 
         categorizeFormats(resolver, textFormatHolders, categoryMap);
@@ -70,6 +88,9 @@ public class Text {
                     symbolComponent = symbolComponent.color(symbolColor);
 
                 Tag resolvedTag = Tag.selfClosingInserting(symbolComponent);
+
+                // Register under the real name, plus the dashed alias.
+                resolver.tag(formatName, resolvedTag);
                 if (formatName.contains("_"))
                     resolver.tag(formatName.replace("_", "-"), resolvedTag);
                 continue;
@@ -90,11 +111,11 @@ public class Text {
             String categoryName = categoryEntry.getKey();
             Map<String, TextFormatHolder> formatChildren = categoryEntry.getValue();
 
-            resolver.tag(categoryName, ((argumentQueue, context) -> {
+            resolver.tag(categoryName, (argumentQueue, _) -> {
                 if (!argumentQueue.hasNext())
                     return Tag.selfClosingInserting(errorResolver("NO ARG QUEUE"));
 
-                String argument = argumentQueue.pop().value().toLowerCase();
+                String argument = normalize(argumentQueue.pop().value());
                 TextFormatHolder child = formatChildren.get(argument);
 
                 if (child == null)
@@ -103,22 +124,25 @@ public class Text {
                 TextColor enforcedColor = child.color();
                 TextComponent symbolComponent = Component.text(child.symbol());
 
-                if (enforcedColor != null)
+                if (enforcedColor != null) {
                     symbolComponent = symbolComponent.color(enforcedColor);
-
-                if (enforcedColor == null && argumentQueue.hasNext()) {
-                    String colorInput = argumentQueue.pop().value();
-                    TextColor selectedColor = TextColor.fromCSSHexString(colorInput);
-                    //Very ugly, don't like it honestly.
-                    selectedColor = selectedColor == null ? ThemeColor.COLOR_MAP.get(colorInput) : selectedColor;
-
+                } else if (argumentQueue.hasNext()) {
+                    TextColor selectedColor = resolveColor(argumentQueue.pop().value());
                     if (selectedColor != null)
                         symbolComponent = symbolComponent.color(selectedColor);
                 }
 
                 return Tag.selfClosingInserting(symbolComponent);
-            }));
-
+            });
         }
+    }
+
+    private TextColor resolveColor(String input) {
+        TextColor hex = TextColor.fromCSSHexString(input);
+        return hex != null ? hex : colorsByName.get(normalize(input));
+    }
+
+    private String normalize(String input) {
+        return input.toLowerCase().replace('-', '_');
     }
 }

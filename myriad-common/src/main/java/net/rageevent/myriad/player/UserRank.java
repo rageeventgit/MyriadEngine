@@ -28,7 +28,7 @@ public enum UserRank implements TextFormatHolder {
 
     @Override
     public boolean categorized() {
-        return TextFormatHolder.super.categorized();
+        return true;
     }
 
     @Override

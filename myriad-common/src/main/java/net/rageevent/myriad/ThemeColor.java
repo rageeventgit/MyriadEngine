@@ -28,31 +28,28 @@ public class ThemeColor {
     public static final TextColor GREY = GRAY;
     public static final TextColor WHITE = TextColor.color(255, 255, 255);
 
-    public static final Map<String, TextColor> COLOR_MAP = new HashMap<>(14);
+    public static final Map<String, TextColor> COLOR_MAP = generateColors();
 
     /*
         This could've been an Enum, but I'm too lazy to convert it to an Enum.
         Stupid...
      */
-    static {
-        Class<ThemeColor> themeColorClass = ThemeColor.class;
-        Field[] colors = themeColorClass.getDeclaredFields();
+    private static Map<String, TextColor> generateColors() {
+        Map<String, TextColor> colorsMap = new HashMap<>();
 
-        for (Field unregisteredColor : colors) {
-            int fieldModifiers = unregisteredColor.getModifiers();
-            if (!(Modifier.isStatic(fieldModifiers) && Modifier.isFinal(fieldModifiers))) continue;
-            unregisteredColor.setAccessible(true);
+        for (Field field : ThemeColor.class.getDeclaredFields()) {
+            int mods = field.getModifiers();
+            if (!Modifier.isStatic(mods) || !Modifier.isFinal(mods)) continue;
+            if (!TextColor.class.isAssignableFrom(field.getType())) continue; // skips COLOR_MAP itself
+
             try {
-
-                Object fieldObj = unregisteredColor.get(themeColorClass);
-                if (!fieldObj.getClass().isAssignableFrom(TextColor.class)) continue;
-
-                TextColor textColor = (TextColor) fieldObj;
-                String fieldName = unregisteredColor.getName().toLowerCase();
-                COLOR_MAP.putIfAbsent(fieldName, textColor);
+                field.setAccessible(true);
+                if (field.get(null) instanceof TextColor textColor) // also null-safe
+                    colorsMap.put(field.getName().toLowerCase(), textColor);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
         }
+        return Map.copyOf(colorsMap);
     }
 }

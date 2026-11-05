@@ -3,16 +3,22 @@ package net.rageevent.myriad.commands;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import lombok.experimental.UtilityClass;
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.rageevent.governor.api.ControlUnit;
 import net.rageevent.governor.api.shipments.network.player.TransferResult;
 import net.rageevent.governor.api.shipments.network.server.SendToGroupRequest;
 import net.rageevent.myriad.Text;
+import net.rageevent.myriad.ThemeColor;
 import net.rageevent.myriad.server.LobbyType;
 import org.bukkit.entity.Player;
 
 import java.util.Optional;
 
+import static com.mojang.brigadier.arguments.StringArgumentType.getString;
+import static com.mojang.brigadier.arguments.StringArgumentType.greedyString;
+import static io.papermc.paper.command.brigadier.Commands.argument;
 import static io.papermc.paper.command.brigadier.Commands.literal;
 import static net.kyori.adventure.text.Component.text;
 import static net.rageevent.myriad.ThemeColor.RED;
@@ -34,6 +40,21 @@ public class GameCommandNodes {
                 })
                 .build();
     }
+
+    public LiteralCommandNode<CommandSourceStack> symbols() {
+        return literal("testtext").requires(source -> source.getSender() instanceof Player).then(argument("text", greedyString()).executes(context -> {
+                    CommandSourceStack source = context.getSource();
+                    Player player = source.getPlayerOrThrow();
+
+                    String text = getString(context,"text");
+                    player.sendMessage(Component.text("Custom Colors: " + ThemeColor.COLOR_MAP.size()));
+                    player.sendMessage(Text.convert(text));
+                    player.playSound(Sound.sound(Key.key("ui.button.click"), Sound.Source.MASTER,1,2));
+                    return 1;
+                }))
+                .build();
+    }
+
     private static Optional<Component> transferResult(TransferResult result) {
         return switch (result.status()) {
             case SUCCESS -> Optional.empty();

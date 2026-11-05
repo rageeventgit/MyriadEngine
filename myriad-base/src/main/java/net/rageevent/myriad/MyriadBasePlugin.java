@@ -10,6 +10,7 @@ import net.rageevent.governor.api.ControlUnit;
 import net.rageevent.governor.api.server.ServerProfile;
 import net.rageevent.myriad.commands.GameCommandNodes;
 import net.rageevent.myriad.interals.FlagParser;
+import net.rageevent.myriad.listener.ChatListener;
 import net.rageevent.myriad.server.GameType;
 import net.rageevent.myriad.server.LobbyType;
 import net.rageevent.myriad.server.ServerModeType;
@@ -42,7 +43,6 @@ public final class MyriadBasePlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         Text.initialize(new ArrayList<>());
-
         int hostPort = Integer.parseInt(FlagParser.getFlag("hub.port"));
         String hostConnection = FlagParser.getFlag("hub.host");
 
@@ -80,13 +80,17 @@ public final class MyriadBasePlugin extends JavaPlugin {
         }));
 
         getServer().getServicesManager().register(ControlUnit.class, controlUnit, this, ServicePriority.High);
+        getServer().getServicesManager().register(ServerManifest.class, serverManifest, this, ServicePriority.High);
 
         LifecycleEventManager<Plugin> lifecycleManager = getLifecycleManager();
 
         lifecycleManager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands commands = event.registrar();
             commands.register(GameCommandNodes.lobbyNode(controlUnit));
+            commands.register(GameCommandNodes.symbols());
         });
+
+        Bukkit.getPluginManager().registerEvents(new ChatListener(),this);
     }
 
     @Override
