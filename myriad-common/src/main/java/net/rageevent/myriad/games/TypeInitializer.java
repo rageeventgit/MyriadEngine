@@ -20,7 +20,7 @@ public class TypeInitializer {
             InputStream input = ServerType.class.getResourceAsStream("/META-INF/jandex.idx");
             if (input != null) {
                 Index index = new IndexReader(input).read();
-                DotName targetInterface = DotName.createSimple(type.getSimpleName());
+                DotName targetInterface = DotName.createSimple(type.getName());
 
                 // Scan for ALL enums implementing ServerType
                 for (ClassInfo info : index.getAllKnownImplementors(targetInterface)) {

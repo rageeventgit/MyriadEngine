@@ -51,6 +51,7 @@ public final class MyriadBasePlugin extends JavaPlugin {
         serverManifest = ServerManifest.read(serverDirectory);
 
         Optional<ServerType> serverType = ServerType.TYPES.stream().filter(comparedType -> comparedType.id().equalsIgnoreCase(serverManifest.field("gametype", LobbyType.MAIN.name()))).findFirst();
+
         if (serverType.isEmpty()) {
             getComponentLogger().error(Text.convert("<red>Failed to find a valid gametype"));
             getServer().getPluginManager().disablePlugin(this);
@@ -61,8 +62,13 @@ public final class MyriadBasePlugin extends JavaPlugin {
                         .filter(comparedType -> comparedType.name().equalsIgnoreCase(serverManifest.field("mode").orElse(null))).findFirst();
 
         getComponentLogger().debug(Text.convert("<yellow>Server Type: <aqua>" + serverType.get().id() + " " + serverType.get().visualName()));
+        ServerModeType serverModeType = modeType.orElse(null);
 
-        ServerProfile serverProfile = ServerProfile.backend(serverType.get(), modeType.orElse(null), 25);
+        if (serverModeType != null) {
+            getComponentLogger().debug(Text.convert("<yellow>Mode: <green>${modeType.get().visualName()} <gray>(${modeType.get().name()}"));
+        }
+
+        ServerProfile serverProfile = ServerProfile.backend(serverType.get(), serverModeType, 25);
 
         controlUnit = new ControlUnit(new ControlUnit.Connection(serverManifest.name(), hostConnection, hostPort), serverProfile);
         controlUnit.connect().whenComplete(((parcelConnection, throwable) -> {

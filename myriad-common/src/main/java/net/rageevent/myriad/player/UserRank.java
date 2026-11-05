@@ -33,6 +33,6 @@ public enum UserRank implements TextFormatHolder {
 
     @Override
     public String dub(){
-        return "RANK_${name()}";
+        return "RANK_" + name();
     }
 }

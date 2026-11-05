@@ -40,7 +40,12 @@ public class MyriadProxy {
         String hostConnection = FlagParser.getFlag("governor.host");
 
         controlUnit = new ControlUnit(new ControlUnit.Connection(serverManifest.name(), hostConnection, hostPort), ServerProfile.proxy());
-        controlUnit.install(new ServerProxyBridge(proxyServer, logger)).listen(new PlayerSync(proxyServer, controlUnit));
+        PlayerSync playerSync = new PlayerSync(proxyServer, controlUnit);
+        controlUnit
+                .install(new ServerProxyBridge(proxyServer, logger))
+                .listen(playerSync);
+
+        proxyServer.getEventManager().register(this, playerSync);
 
         controlUnit.connect().whenComplete(((parcelConnection, throwable) -> {
             if (throwable != null) {
@@ -50,7 +55,6 @@ public class MyriadProxy {
             logger.debug(Text.convert("<green>Successfully connect to <yellow>Governor</yellow>. <gray>(${parcelConnection.name()})"));
         }));
 
-        proxyServer.getEventManager().register(this, new PlayerSync(proxyServer,controlUnit));
     }
 
     @Subscribe
