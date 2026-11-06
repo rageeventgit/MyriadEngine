@@ -9,9 +9,12 @@ import lombok.SneakyThrows;
 import net.rageevent.governor.api.ControlUnit;
 import net.rageevent.governor.api.server.ServerProfile;
 import net.rageevent.myriad.commands.GameCommandNodes;
+import net.rageevent.myriad.database.api.communication.MessagingDatabaseInteractor;
+import net.rageevent.myriad.database.api.database.MessagingDatabaseConnection;
+import net.rageevent.myriad.database.redis.RedisConnectionInfo;
+import net.rageevent.myriad.database.redis.RedisDatabaseConnection;
 import net.rageevent.myriad.interals.FlagParser;
 import net.rageevent.myriad.listener.ChatListener;
-import net.rageevent.myriad.server.GameType;
 import net.rageevent.myriad.server.LobbyType;
 import net.rageevent.myriad.server.ServerModeType;
 import net.rageevent.myriad.server.ServerType;
@@ -22,10 +25,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Getter
 public final class MyriadBasePlugin extends JavaPlugin {
@@ -33,6 +33,8 @@ public final class MyriadBasePlugin extends JavaPlugin {
     private ControlUnit controlUnit;
 
     private ServerManifest serverManifest;
+
+    private MessagingDatabaseConnection<MessagingDatabaseInteractor> redisConnector;
 
     @SneakyThrows
     @Override
@@ -79,6 +81,9 @@ public final class MyriadBasePlugin extends JavaPlugin {
             getComponentLogger().debug(Text.convert("<green>Successfully connect to <blue>Overseer</blue>. <gray>(%s)".formatted(parcelConnection.name())));
         }));
 
+        redisConnector = new RedisDatabaseConnection(new RedisConnectionInfo("127.0.0.1",6379,"",""));
+        redisConnector.connect();
+
         getServer().getServicesManager().register(ControlUnit.class, controlUnit, this, ServicePriority.High);
         getServer().getServicesManager().register(ServerManifest.class, serverManifest, this, ServicePriority.High);
 
@@ -88,6 +93,7 @@ public final class MyriadBasePlugin extends JavaPlugin {
             Commands commands = event.registrar();
             commands.register(GameCommandNodes.lobbyNode(controlUnit));
             commands.register(GameCommandNodes.symbols());
+            commands.register(GameCommandNodes.redisTest(this));
         });
 
         Bukkit.getPluginManager().registerEvents(new ChatListener(),this);
@@ -96,5 +102,6 @@ public final class MyriadBasePlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         controlUnit.close();
+        redisConnector.disconnect();
     }
 }
