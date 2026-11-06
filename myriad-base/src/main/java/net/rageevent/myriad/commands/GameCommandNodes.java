@@ -1,5 +1,8 @@
 package net.rageevent.myriad.commands;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import lombok.experimental.UtilityClass;
@@ -13,9 +16,17 @@ import net.rageevent.governor.api.shipments.network.server.SendToGroupRequest;
 import net.rageevent.myriad.MyriadBasePlugin;
 import net.rageevent.myriad.Text;
 import net.rageevent.myriad.ThemeColor;
+import net.rageevent.myriad.database.MongoCollections;
 import net.rageevent.myriad.database.api.communication.MessagingDatabaseInteractor;
+import net.rageevent.myriad.database.api.database.DatabaseConnection;
 import net.rageevent.myriad.database.api.database.MessagingDatabaseConnection;
+import net.rageevent.myriad.database.api.mongo.BsonDatabaseInteractor;
+import net.rageevent.myriad.database.api.mongo.MongoQueryKey;
 import net.rageevent.myriad.database.api.query.QueryKey;
+import net.rageevent.myriad.database.queries.mongo.GetTestDocument;
+import net.rageevent.myriad.database.queries.mongo.WriteTestDocument;
+import net.rageevent.myriad.json.JsonUtil;
+import net.rageevent.myriad.player.UserRank;
 import net.rageevent.myriad.server.LobbyType;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -102,4 +113,39 @@ public class GameCommandNodes {
     }
 
 
+    public static LiteralCommandNode<CommandSourceStack> mongoTest(MyriadBasePlugin plugin) {
+        DatabaseConnection<BsonDatabaseInteractor> mongoInteractor = plugin.getMongoConnector();
+        return literal("mongotest").requires(source -> source.getSender() instanceof Player).executes(context -> {
+            CommandSourceStack source = context.getSource();
+            Player player = source.getPlayerOrThrow();
+
+            ObjectNode testNode = JsonUtil.OBJECT_MAPPER.createObjectNode();
+
+            String playerUuid = player.getUniqueId().toString();
+            testNode.put("id", playerUuid);
+            testNode.put("username", player.getName());
+            testNode.put("rank", UserRank.NORMAL.name());
+            testNode.putObject("stats").put("skywars","0");
+
+            mongoInteractor.post(new WriteTestDocument(testNode)).whenComplete(((queryResult, _) ->
+                    player.sendMessage(Text.convert("<gold><misc:bullet> <dark-green>${queryResult.message()}"))));
+
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                mongoInteractor.post(new GetTestDocument(MongoQueryKey.id(playerUuid))).whenComplete((result, _) -> {
+                    player.sendMessage(Text.convert("<gold><misc:bullet> <dark-green>${result.message()}"));
+                    JsonNode node = result.object();
+                    try {
+                        player.sendMessage(Text.convert(JsonUtil.OBJECT_MAPPER.writeValueAsString(node)));
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            },20*2);
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                mongoInteractor.interactor().remove(MongoCollections.TESTING,MongoQueryKey.id(playerUuid)).whenComplete((result, _) ->
+                        player.sendMessage(Text.convert("<blue><misc:bullet> <pink>${result.message()}")));
+            },20*10);
+            return 1;
+        }).build();
+    }
 }

@@ -35,7 +35,7 @@ public class RedisDatabaseConnection implements MessagingDatabaseConnection<Mess
     public void connect() {
         opened = true;
 
-        RedisURI.Builder uriBuilder = RedisURI.Builder.redis(connectionInfo.url(),connectionInfo.port());
+        RedisURI.Builder uriBuilder = RedisURI.Builder.redis(connectionInfo.url(), connectionInfo.port());
 
         if (!(connectionInfo.username().isBlank() && connectionInfo.password().isBlank()))
             uriBuilder.withAuthentication(connectionInfo.username(), connectionInfo.password());
@@ -54,7 +54,7 @@ public class RedisDatabaseConnection implements MessagingDatabaseConnection<Mess
             }
         });
 
-        interactor = new RedisDatabaseInteractor(pubSubConnection,connection, agentStore);
+        interactor = new RedisDatabaseInteractor(pubSubConnection, connection, agentStore);
     }
 
     @Override
@@ -79,11 +79,12 @@ public class RedisDatabaseConnection implements MessagingDatabaseConnection<Mess
     }
 
     //This will act as any other query, but with the added ability of publishing to redis.
+
+
     @Override
-    public <T> CompletableFuture<QueryResult<T>> post(Query<T, MessagingDatabaseInteractor> query) {
+    public <T, Q extends Query<T, MessagingDatabaseInteractor>> CompletableFuture<QueryResult<T>> post(Q query) {
         if (!opened)
             return CompletableFuture.completedFuture(new FailedQueryResult<>("Connection not opened."));
         return query.call(interactor);
     }
-
 }

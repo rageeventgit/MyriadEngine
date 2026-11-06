@@ -10,7 +10,11 @@ import net.rageevent.governor.api.ControlUnit;
 import net.rageevent.governor.api.server.ServerProfile;
 import net.rageevent.myriad.commands.GameCommandNodes;
 import net.rageevent.myriad.database.api.communication.MessagingDatabaseInteractor;
+import net.rageevent.myriad.database.api.database.DatabaseConnection;
 import net.rageevent.myriad.database.api.database.MessagingDatabaseConnection;
+import net.rageevent.myriad.database.api.mongo.BsonDatabaseInteractor;
+import net.rageevent.myriad.database.mongo.MongoConnectionInfo;
+import net.rageevent.myriad.database.mongo.MongoDatabaseConnection;
 import net.rageevent.myriad.database.redis.RedisConnectionInfo;
 import net.rageevent.myriad.database.redis.RedisDatabaseConnection;
 import net.rageevent.myriad.interals.FlagParser;
@@ -35,6 +39,7 @@ public final class MyriadBasePlugin extends JavaPlugin {
     private ServerManifest serverManifest;
 
     private MessagingDatabaseConnection<MessagingDatabaseInteractor> redisConnector;
+    private DatabaseConnection<BsonDatabaseInteractor> mongoConnector;
 
     @SneakyThrows
     @Override
@@ -84,6 +89,9 @@ public final class MyriadBasePlugin extends JavaPlugin {
         redisConnector = new RedisDatabaseConnection(new RedisConnectionInfo("127.0.0.1",6379,"",""));
         redisConnector.connect();
 
+        mongoConnector = new MongoDatabaseConnection(MongoConnectionInfo.LOCALHOST);
+        mongoConnector.connect();
+
         getServer().getServicesManager().register(ControlUnit.class, controlUnit, this, ServicePriority.High);
         getServer().getServicesManager().register(ServerManifest.class, serverManifest, this, ServicePriority.High);
 
@@ -94,6 +102,7 @@ public final class MyriadBasePlugin extends JavaPlugin {
             commands.register(GameCommandNodes.lobbyNode(controlUnit));
             commands.register(GameCommandNodes.symbols());
             commands.register(GameCommandNodes.redisTest(this));
+            commands.register(GameCommandNodes.mongoTest(this));
         });
 
         Bukkit.getPluginManager().registerEvents(new ChatListener(),this);
@@ -103,5 +112,6 @@ public final class MyriadBasePlugin extends JavaPlugin {
     public void onDisable() {
         controlUnit.close();
         redisConnector.disconnect();
+        mongoConnector.disconnect();
     }
 }

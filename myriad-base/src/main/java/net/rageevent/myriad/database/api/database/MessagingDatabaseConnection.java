@@ -2,6 +2,10 @@ package net.rageevent.myriad.database.api.database;
 
 
 import net.rageevent.myriad.database.api.communication.MessageAgentStore;
+import net.rageevent.myriad.database.api.query.Query;
+import net.rageevent.myriad.database.api.query.result.QueryResult;
+
+import java.util.concurrent.CompletableFuture;
 
 /**
  * A type of connection that allows for messaging
@@ -17,8 +21,8 @@ public interface MessagingDatabaseConnection<I extends DatabaseInteractor> exten
      * Handles and receives messages from a provided source.
      *
      * <p>
-     *     Any messages or handlers go through the agent, regardless
-     *     of what is being sent besides {@link net.rageevent.work.api.query.Query}s.
+     * Any messages or handlers go through the agent, regardless
+     * of what is being sent besides {@link net.rageevent.work.api.query.Query}s.
      * </p>
      *
      * @return an agent that is used to send and handle messages.
@@ -26,4 +30,6 @@ public interface MessagingDatabaseConnection<I extends DatabaseInteractor> exten
      */
     MessageAgentStore agent();
 
+    //This will act as any other query, but with the added ability of publishing to redis.
+    <T, Q extends Query<T, I>> CompletableFuture<QueryResult<T>> post(Q query);
 }

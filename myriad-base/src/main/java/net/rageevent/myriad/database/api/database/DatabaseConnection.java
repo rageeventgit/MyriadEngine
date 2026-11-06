@@ -51,8 +51,8 @@ public interface DatabaseConnection<I extends DatabaseInteractor> {
      * Sends a premade query to the database.
      *
      * <p>
-     *     The query is handled by a {@link DatabaseInteractor} which sends the query to the database,
-     *     handles the receiving and formatting.
+     * The query is handled by a {@link DatabaseInteractor} which sends the query to the database,
+     * handles the receiving and formatting.
      * </p>
      *
      * @param query the pre-written query that is going to be sent to the database.
@@ -60,5 +60,5 @@ public interface DatabaseConnection<I extends DatabaseInteractor> {
      * @return a {@link CompletableFuture} containing a {@link QueryResult} with {@code T}, or if failed
      * a {@link net.rageevent.work.api.query.result.FailedQueryResult} if the response is failed.
      */
-    <T> CompletableFuture<QueryResult<T>> post(Query<T, I> query);
+    <T, Q extends Query<T, I>> CompletableFuture<QueryResult<T>> post(Q query);
 }
