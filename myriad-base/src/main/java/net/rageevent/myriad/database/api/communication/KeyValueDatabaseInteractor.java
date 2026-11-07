@@ -13,7 +13,7 @@ public interface KeyValueDatabaseInteractor extends DatabaseInteractor {
 
     <R> CompletableFuture<QueryResult<R>> get(QueryKey key);
 
-    CompletableFuture<Void> remove(QueryKey key);
+    CompletableFuture<QueryResult<Void>> remove(QueryKey key);
 
     CompletableFuture<Boolean> exists(QueryKey key);
 }

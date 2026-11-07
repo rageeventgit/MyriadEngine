@@ -80,9 +80,8 @@ public class MongoDatabaseInteractor implements BsonDatabaseInteractor {
                 return new FailedQueryResult<>("Couldn't find document with key '${base}' filterKey '${value}'");
 
             String docJson = firstFound.toJson();
-
             try {
-                return new PassedQueryResult<>(JsonUtil.OBJECT_MAPPER.readValue(docJson, JsonNode.class));
+                return new PassedQueryResult<>(fromMongoNode(JsonUtil.OBJECT_MAPPER.readValue(docJson, JsonNode.class)));
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
@@ -109,17 +108,26 @@ public class MongoDatabaseInteractor implements BsonDatabaseInteractor {
 
     @SneakyThrows
     private Document toDocument(JsonNode value) {
-        return Document.parse(JsonUtil.OBJECT_MAPPER.writeValueAsString(fixNode(value)));
+        return Document.parse(JsonUtil.OBJECT_MAPPER.writeValueAsString(toMongoNode(value)));
     }
 
     private MongoCollection<Document> collection(MongoDataCollection collection) {
         return mongoDatabase.getCollection(collection.databaseName());
     }
-    private JsonNode fixNode(JsonNode rawNode){
-        if(!rawNode.has("id")) return rawNode; //Let mongo generate one on its own.
+
+    private JsonNode toMongoNode(JsonNode rawNode) {
+        if (!rawNode.has("id")) return rawNode; //Let mongo generate one on its own.
         ObjectNode modifiedNode = (ObjectNode) rawNode;
         JsonNode idNode = rawNode.get("id");
         modifiedNode.remove("id");
-        return modifiedNode.set("_id",idNode);
+        return modifiedNode.set("_id", idNode);
+    }
+
+    private JsonNode fromMongoNode(JsonNode rawNode) {
+        if (!rawNode.has("_id")) return rawNode; //Don't know how this would be possible.
+        ObjectNode modifiedNode = (ObjectNode) rawNode;
+        JsonNode idNode = rawNode.get("_id");
+        modifiedNode.remove("_id");
+        return modifiedNode.set("id", idNode);
     }
 }

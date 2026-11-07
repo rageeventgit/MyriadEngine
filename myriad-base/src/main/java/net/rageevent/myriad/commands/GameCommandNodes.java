@@ -25,6 +25,8 @@ import net.rageevent.myriad.database.api.mongo.MongoQueryKey;
 import net.rageevent.myriad.database.api.query.QueryKey;
 import net.rageevent.myriad.database.queries.mongo.GetTestDocument;
 import net.rageevent.myriad.database.queries.mongo.WriteTestDocument;
+import net.rageevent.myriad.database.queries.redis.PostUserData;
+import net.rageevent.myriad.database.queries.redis.RetrieveUserData;
 import net.rageevent.myriad.json.JsonUtil;
 import net.rageevent.myriad.player.UserRank;
 import net.rageevent.myriad.server.LobbyType;
@@ -97,6 +99,15 @@ public class GameCommandNodes {
                 }, 0);
             }), 20 * 2);
 
+//            Bukkit.getScheduler().runTaskLater(plugin, () -> interactor.remove(QueryKey.singlet("test")).whenComplete((result, error) -> {
+//                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+//                    if (error != null) {
+//                        player.sendMessage(Text.convert("<red>${error.getMessage()}"));
+//                        return;
+//                    }
+//                    player.sendMessage(Text.convert("<dark-red><misc:bullet></dark-red> <red>Message:</red> <yellow>${result.message()}"));
+//                }, 0);
+//            }), 20 * 6);
             return 1;
         }).build();
     }
@@ -112,6 +123,51 @@ public class GameCommandNodes {
         };
     }
 
+    public static LiteralCommandNode<CommandSourceStack> transferTest(MyriadBasePlugin plugin) {
+        DatabaseConnection<BsonDatabaseInteractor> mongoInteractor = plugin.getMongoConnector();
+        MessagingDatabaseConnection<MessagingDatabaseInteractor> redisConnector = plugin.getRedisConnector();
+        return literal("transferTest").requires(source -> source.getSender() instanceof Player).executes(context -> {
+            CommandSourceStack source = context.getSource();
+            Player player = source.getPlayerOrThrow();
+
+            ObjectNode testNode = JsonUtil.OBJECT_MAPPER.createObjectNode();
+
+            String playerUuid = player.getUniqueId().toString();
+            testNode.put("id", playerUuid);
+            testNode.put("username", player.getName());
+            testNode.put("rank", UserRank.NORMAL.name());
+            testNode.putObject("stats").put("skywars", "0");
+
+            mongoInteractor.post(new WriteTestDocument(testNode)).whenComplete(((queryResult, _) ->
+                    player.sendMessage(Text.convert("<gold><misc:bullet> <dark-green>${queryResult.message()}"))));
+
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                mongoInteractor.post(new GetTestDocument(MongoQueryKey.id(playerUuid))).whenComplete((result, _) -> {
+                    player.sendMessage(Text.convert("<gold><misc:bullet> <dark-green>${result.message()}"));
+                    JsonNode node = result.object();
+                    QueryKey key = new QueryKey("id", node.get("id").asText());
+
+                    redisConnector.post(new PostUserData(key, node)).whenComplete((redisResult, _) ->
+                            player.sendMessage(Text.convert("<yellow><misc:bullet></yellow> <pink>${redisResult.message()}")));
+                });
+            }, 20 * 2);
+
+            Bukkit.getScheduler().runTaskLater(plugin, () ->
+                    redisConnector.post(new RetrieveUserData(QueryKey.of("id:$playerUuid"))).whenComplete((result, _) -> {
+                        if (result.failed()) {
+                            player.sendMessage(Text.convert("<dark-red><misc:x></dark-red> <red>${result.message()}"));
+                            return;
+                        }
+                        JsonNode node = result.object();
+                        try {
+                            player.sendMessage(JsonUtil.OBJECT_MAPPER.writeValueAsString(node));
+                        } catch (JsonProcessingException e) {
+                            player.sendMessage(Text.convert("<dark-red><misc:x></dark-red> <red>${e.getMessage()}"));
+                        }
+                    }), 20 * 6);
+            return 1;
+        }).build();
+    }
 
     public static LiteralCommandNode<CommandSourceStack> mongoTest(MyriadBasePlugin plugin) {
         DatabaseConnection<BsonDatabaseInteractor> mongoInteractor = plugin.getMongoConnector();
@@ -125,7 +181,7 @@ public class GameCommandNodes {
             testNode.put("id", playerUuid);
             testNode.put("username", player.getName());
             testNode.put("rank", UserRank.NORMAL.name());
-            testNode.putObject("stats").put("skywars","0");
+            testNode.putObject("stats").put("skywars", "0");
 
             mongoInteractor.post(new WriteTestDocument(testNode)).whenComplete(((queryResult, _) ->
                     player.sendMessage(Text.convert("<gold><misc:bullet> <dark-green>${queryResult.message()}"))));
@@ -140,11 +196,11 @@ public class GameCommandNodes {
                         throw new RuntimeException(e);
                     }
                 });
-            },20*2);
+            }, 20 * 2);
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                mongoInteractor.interactor().remove(MongoCollections.TESTING,MongoQueryKey.id(playerUuid)).whenComplete((result, _) ->
+                mongoInteractor.interactor().remove(MongoCollections.TESTING, MongoQueryKey.id(playerUuid)).whenComplete((result, _) ->
                         player.sendMessage(Text.convert("<blue><misc:bullet> <pink>${result.message()}")));
-            },20*10);
+            }, 20 * 10);
             return 1;
         }).build();
     }

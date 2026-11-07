@@ -103,6 +103,7 @@ public final class MyriadBasePlugin extends JavaPlugin {
             commands.register(GameCommandNodes.symbols());
             commands.register(GameCommandNodes.redisTest(this));
             commands.register(GameCommandNodes.mongoTest(this));
+            commands.register(GameCommandNodes.transferTest(this));
         });
 
         Bukkit.getPluginManager().registerEvents(new ChatListener(),this);
