@@ -1,6 +1,6 @@
 package net.rageevent.myriad.database.mongo;
 
-public record MongoConnectionInfo(String url) {
+public record MongoConnectionInfo(String url, String username, String something, String password) {
 
-    public static MongoConnectionInfo LOCALHOST = new MongoConnectionInfo("");
+    public static MongoConnectionInfo LOCALHOST = new MongoConnectionInfo("", "", "", "");
 }

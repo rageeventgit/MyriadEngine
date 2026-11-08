@@ -35,10 +35,13 @@ public class RedisDatabaseConnection implements MessagingDatabaseConnection<Mess
     public void connect() {
         opened = true;
 
-        RedisURI.Builder uriBuilder = RedisURI.Builder.redis(connectionInfo.url(), connectionInfo.port());
+        int redisPort = connectionInfo.port();
+        RedisURI.Builder uriBuilder = redisPort == -1 ?
+                RedisURI.Builder.redis(connectionInfo.url()) : RedisURI.Builder.redis(connectionInfo.url(), redisPort);
 
-        if (!(connectionInfo.username().isBlank() && connectionInfo.password().isBlank()))
-            uriBuilder.withAuthentication(connectionInfo.username(), connectionInfo.password());
+
+        if (!connectionInfo.password().isBlank())
+            uriBuilder = uriBuilder.withPassword(connectionInfo.password());
 
         client = RedisClient.create(uriBuilder.build());
 

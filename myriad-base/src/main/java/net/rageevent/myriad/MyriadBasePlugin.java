@@ -53,6 +53,10 @@ public final class MyriadBasePlugin extends JavaPlugin {
         int hostPort = Integer.parseInt(FlagParser.getFlag("hub.port"));
         String hostConnection = FlagParser.getFlag("hub.host");
 
+        String redisPassword = FlagParser.getFlag("redis.p");
+        String mongoPassword = FlagParser.getFlag("mongo.p");
+
+
         Path serverDirectory = Bukkit.getWorldContainer().toPath();
 
         serverManifest = ServerManifest.read(serverDirectory);
@@ -85,11 +89,10 @@ public final class MyriadBasePlugin extends JavaPlugin {
             }
             getComponentLogger().debug(Text.convert("<green>Successfully connect to <blue>Overseer</blue>. <gray>(%s)".formatted(parcelConnection.name())));
         }));
-
-        redisConnector = new RedisDatabaseConnection(new RedisConnectionInfo("127.0.0.1",6379,"",""));
+        redisConnector = new RedisDatabaseConnection(new RedisConnectionInfo("127.0.0.1", 6379, "default", redisPassword));
         redisConnector.connect();
 
-        mongoConnector = new MongoDatabaseConnection(MongoConnectionInfo.LOCALHOST);
+        mongoConnector = new MongoDatabaseConnection(new MongoConnectionInfo("mongodb://127.0.0.1:27017/", "fern", "admin", mongoPassword));
         mongoConnector.connect();
 
         getServer().getServicesManager().register(ControlUnit.class, controlUnit, this, ServicePriority.High);
@@ -106,7 +109,7 @@ public final class MyriadBasePlugin extends JavaPlugin {
             commands.register(GameCommandNodes.transferTest(this));
         });
 
-        Bukkit.getPluginManager().registerEvents(new ChatListener(),this);
+        Bukkit.getPluginManager().registerEvents(new ChatListener(), this);
     }
 
     @Override
