@@ -7,7 +7,7 @@ import io.lettuce.core.pubsub.RedisPubSubAdapter;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import lombok.RequiredArgsConstructor;
 import net.rageevent.myriad.api.database.api.communication.MessageAgentStore;
-import net.rageevent.myriad.api.database.api.communication.MessagingDatabaseInteractor;
+import net.rageevent.myriad.api.database.api.communication.LettuceDatabaseInteractor;
 import net.rageevent.myriad.api.database.api.database.MessagingDatabaseConnection;
 import net.rageevent.myriad.api.database.api.query.Query;
 import net.rageevent.myriad.api.database.api.query.QueryKey;
@@ -18,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
 
 
 @RequiredArgsConstructor
-public class RedisDatabaseConnection implements MessagingDatabaseConnection<MessagingDatabaseInteractor> {
+public class RedisDatabaseConnection implements MessagingDatabaseConnection<LettuceDatabaseInteractor> {
 
     private final RedisConnectionInfo connectionInfo;
 
@@ -26,7 +26,7 @@ public class RedisDatabaseConnection implements MessagingDatabaseConnection<Mess
     private StatefulRedisConnection<String, String> connection;
     private StatefulRedisPubSubConnection<String, String> pubSubConnection;
 
-    private MessagingDatabaseInteractor interactor;
+    private LettuceDatabaseInteractor interactor;
     private MessageAgentStore agentStore;
 
     private boolean opened;
@@ -72,7 +72,7 @@ public class RedisDatabaseConnection implements MessagingDatabaseConnection<Mess
     }
 
     @Override
-    public MessagingDatabaseInteractor interactor() {
+    public LettuceDatabaseInteractor interactor() {
         return interactor;
     }
 
@@ -85,7 +85,7 @@ public class RedisDatabaseConnection implements MessagingDatabaseConnection<Mess
 
 
     @Override
-    public <T, Q extends Query<T, MessagingDatabaseInteractor>> CompletableFuture<QueryResult<T>> post(Q query) {
+    public <T, Q extends Query<T, LettuceDatabaseInteractor>> CompletableFuture<QueryResult<T>> post(Q query) {
         if (!opened)
             return CompletableFuture.completedFuture(new FailedQueryResult<>("Connection not opened."));
         return query.call(interactor);

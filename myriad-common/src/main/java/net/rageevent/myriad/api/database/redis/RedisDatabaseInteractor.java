@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import net.rageevent.myriad.api.database.JsonUtil;
 import net.rageevent.myriad.api.database.api.communication.MessageAgentStore;
-import net.rageevent.myriad.api.database.api.communication.MessagingDatabaseInteractor;
+import net.rageevent.myriad.api.database.api.communication.LettuceDatabaseInteractor;
 import net.rageevent.myriad.api.database.api.communication.Serializer;
 import net.rageevent.myriad.api.database.api.query.QueryKey;
 import net.rageevent.myriad.api.database.api.query.result.FailedQueryResult;
@@ -23,7 +23,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
-public class RedisDatabaseInteractor implements MessagingDatabaseInteractor {
+public class RedisDatabaseInteractor implements LettuceDatabaseInteractor {
 
     private final StatefulRedisPubSubConnection<String, String> pubSubConnection;
     private final StatefulRedisConnection<String, String> redisConnection;
@@ -71,9 +71,14 @@ public class RedisDatabaseInteractor implements MessagingDatabaseInteractor {
 
     @Override
     public CompletableFuture<QueryResult<JsonNode>> jsonGet(QueryKey key) {
+        return jsonGet(key, JsonPath.ROOT_PATH.toString());
+    }
+
+    @Override
+    public CompletableFuture<QueryResult<JsonNode>> jsonGet(QueryKey key, String path) {
         if (!open()) return notConnected();
 
-        return redisConnection.async().jsonGetRaw(key.namespaced(), JsonPath.ROOT_PATH).thenApplyAsync(list -> {
+        return redisConnection.async().jsonGetRaw(key.namespaced(), new JsonPath(path)).thenApplyAsync(list -> {
             if (list.isEmpty()) return new FailedQueryResult<JsonNode>("Could not find json data.");
             String rawJsonData = list.getFirst();
 

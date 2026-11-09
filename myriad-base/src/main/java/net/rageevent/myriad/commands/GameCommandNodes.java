@@ -16,11 +16,10 @@ import net.rageevent.myriad.MyriadBasePlugin;
 import net.rageevent.myriad.Text;
 import net.rageevent.myriad.ThemeColor;
 import net.rageevent.myriad.api.database.MongoCollections;
-import net.rageevent.myriad.api.database.api.communication.MessagingDatabaseInteractor;
+import net.rageevent.myriad.api.database.api.communication.LettuceDatabaseInteractor;
 import net.rageevent.myriad.api.database.api.database.DatabaseConnection;
 import net.rageevent.myriad.api.database.api.database.MessagingDatabaseConnection;
 import net.rageevent.myriad.api.database.api.mongo.BsonDatabaseInteractor;
-import net.rageevent.myriad.api.database.api.mongo.MongoQueryKey;
 import net.rageevent.myriad.api.database.api.query.QueryKey;
 import net.rageevent.myriad.api.database.queries.mongo.GetUserDocument;
 import net.rageevent.myriad.api.database.queries.mongo.WriteJsonDocument;
@@ -71,11 +70,11 @@ public class GameCommandNodes {
     }
 
     public static LiteralCommandNode<CommandSourceStack> redisTest(MyriadBasePlugin plugin) {
-        MessagingDatabaseConnection<MessagingDatabaseInteractor> redisConnector = plugin.getRedisConnector();
+        MessagingDatabaseConnection<LettuceDatabaseInteractor> redisConnector = plugin.getRedisConnector();
         return literal("redistest").requires(source -> source.getSender() instanceof Player).executes(context -> {
             CommandSourceStack source = context.getSource();
             Player player = source.getPlayerOrThrow();
-            MessagingDatabaseInteractor interactor = redisConnector.interactor();
+            LettuceDatabaseInteractor interactor = redisConnector.interactor();
 
             interactor.set(QueryKey.singlet("test"), "Hello world!").whenComplete((result, error) -> {
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
@@ -124,7 +123,7 @@ public class GameCommandNodes {
 
     public static LiteralCommandNode<CommandSourceStack> transferTest(MyriadBasePlugin plugin) {
         DatabaseConnection<BsonDatabaseInteractor> mongoInteractor = plugin.getMongoConnector();
-        MessagingDatabaseConnection<MessagingDatabaseInteractor> redisConnector = plugin.getRedisConnector();
+        MessagingDatabaseConnection<LettuceDatabaseInteractor> redisConnector = plugin.getRedisConnector();
         return literal("transferTest").requires(source -> source.getSender() instanceof Player).executes(context -> {
             CommandSourceStack source = context.getSource();
             Player player = source.getPlayerOrThrow();

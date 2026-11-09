@@ -8,7 +8,7 @@ import lombok.SneakyThrows;
 import net.rageevent.fern.ServerManifest;
 import net.rageevent.governor.api.ControlUnit;
 import net.rageevent.governor.api.server.ServerProfile;
-import net.rageevent.myriad.api.database.api.communication.MessagingDatabaseInteractor;
+import net.rageevent.myriad.api.database.api.communication.LettuceDatabaseInteractor;
 import net.rageevent.myriad.api.database.api.database.DatabaseConnection;
 import net.rageevent.myriad.api.database.api.database.MessagingDatabaseConnection;
 import net.rageevent.myriad.api.database.api.mongo.BsonDatabaseInteractor;
@@ -38,7 +38,7 @@ public final class MyriadBasePlugin extends JavaPlugin {
 
     private ServerManifest serverManifest;
 
-    private MessagingDatabaseConnection<MessagingDatabaseInteractor> redisConnector;
+    private MessagingDatabaseConnection<LettuceDatabaseInteractor> redisConnector;
     private DatabaseConnection<BsonDatabaseInteractor> mongoConnector;
 
     @SneakyThrows
