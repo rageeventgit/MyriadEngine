@@ -9,38 +9,37 @@ import lombok.experimental.UtilityClass;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.rageevent.governor.api.ControlUnit;
 import net.rageevent.governor.api.shipments.network.player.TransferResult;
 import net.rageevent.governor.api.shipments.network.server.SendToGroupRequest;
 import net.rageevent.myriad.MyriadBasePlugin;
 import net.rageevent.myriad.Text;
 import net.rageevent.myriad.ThemeColor;
-import net.rageevent.myriad.database.MongoCollections;
-import net.rageevent.myriad.database.api.communication.MessagingDatabaseInteractor;
-import net.rageevent.myriad.database.api.database.DatabaseConnection;
-import net.rageevent.myriad.database.api.database.MessagingDatabaseConnection;
-import net.rageevent.myriad.database.api.mongo.BsonDatabaseInteractor;
-import net.rageevent.myriad.database.api.mongo.MongoQueryKey;
-import net.rageevent.myriad.database.api.query.QueryKey;
-import net.rageevent.myriad.database.queries.mongo.GetTestDocument;
-import net.rageevent.myriad.database.queries.mongo.WriteTestDocument;
-import net.rageevent.myriad.database.queries.redis.PostUserData;
-import net.rageevent.myriad.database.queries.redis.RetrieveUserData;
+import net.rageevent.myriad.api.database.MongoCollections;
+import net.rageevent.myriad.api.database.api.communication.MessagingDatabaseInteractor;
+import net.rageevent.myriad.api.database.api.database.DatabaseConnection;
+import net.rageevent.myriad.api.database.api.database.MessagingDatabaseConnection;
+import net.rageevent.myriad.api.database.api.mongo.BsonDatabaseInteractor;
+import net.rageevent.myriad.api.database.api.mongo.MongoQueryKey;
+import net.rageevent.myriad.api.database.api.query.QueryKey;
+import net.rageevent.myriad.api.database.queries.mongo.GetUserDocument;
+import net.rageevent.myriad.api.database.queries.mongo.WriteJsonDocument;
+import net.rageevent.myriad.api.database.queries.redis.PostUserData;
+import net.rageevent.myriad.api.database.queries.redis.RetrieveUserData;
 import net.rageevent.myriad.json.JsonUtil;
-import net.rageevent.myriad.player.UserRank;
-import net.rageevent.myriad.server.LobbyType;
+import net.rageevent.myriad.api.player.UserRank;
+import net.rageevent.myriad.api.server.LobbyType;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.greedyString;
 import static io.papermc.paper.command.brigadier.Commands.argument;
 import static io.papermc.paper.command.brigadier.Commands.literal;
 import static net.kyori.adventure.text.Component.text;
-import static net.rageevent.myriad.ThemeColor.BLUE;
 import static net.rageevent.myriad.ThemeColor.RED;
 
 @UtilityClass
@@ -132,28 +131,27 @@ public class GameCommandNodes {
 
             ObjectNode testNode = JsonUtil.OBJECT_MAPPER.createObjectNode();
 
-            String playerUuid = player.getUniqueId().toString();
-            testNode.put("id", playerUuid);
+            UUID playerUuid = player.getUniqueId();
+            testNode.put("id", playerUuid.toString());
             testNode.put("username", player.getName());
             testNode.put("rank", UserRank.NORMAL.name());
             testNode.putObject("stats").put("skywars", "0");
 
-            mongoInteractor.post(new WriteTestDocument(testNode)).whenComplete(((queryResult, _) ->
+            mongoInteractor.post(new WriteJsonDocument(MongoCollections.TESTING, testNode)).whenComplete(((queryResult, _) ->
                     player.sendMessage(Text.convert("<gold><misc:bullet> <dark-green>${queryResult.message()}"))));
 
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                mongoInteractor.post(new GetTestDocument(MongoQueryKey.id(playerUuid))).whenComplete((result, _) -> {
+                mongoInteractor.post(new GetUserDocument(playerUuid)).whenComplete((result, _) -> {
                     player.sendMessage(Text.convert("<gold><misc:bullet> <dark-green>${result.message()}"));
                     JsonNode node = result.object();
-                    QueryKey key = new QueryKey("id", node.get("id").asText());
 
-                    redisConnector.post(new PostUserData(key, node)).whenComplete((redisResult, _) ->
+                    redisConnector.post(new PostUserData(UUID.fromString(node.get("id").asText()), node)).whenComplete((redisResult, _) ->
                             player.sendMessage(Text.convert("<yellow><misc:bullet></yellow> <pink>${redisResult.message()}")));
                 });
             }, 20 * 2);
 
             Bukkit.getScheduler().runTaskLater(plugin, () ->
-                    redisConnector.post(new RetrieveUserData(QueryKey.of("id:$playerUuid"))).whenComplete((result, _) -> {
+                    redisConnector.post(new RetrieveUserData(playerUuid)).whenComplete((result, _) -> {
                         if (result.failed()) {
                             player.sendMessage(Text.convert("<dark-red><misc:x></dark-red> <red>${result.message()}"));
                             return;
@@ -165,42 +163,6 @@ public class GameCommandNodes {
                             player.sendMessage(Text.convert("<dark-red><misc:x></dark-red> <red>${e.getMessage()}"));
                         }
                     }), 20 * 6);
-            return 1;
-        }).build();
-    }
-
-    public static LiteralCommandNode<CommandSourceStack> mongoTest(MyriadBasePlugin plugin) {
-        DatabaseConnection<BsonDatabaseInteractor> mongoInteractor = plugin.getMongoConnector();
-        return literal("mongotest").requires(source -> source.getSender() instanceof Player).executes(context -> {
-            CommandSourceStack source = context.getSource();
-            Player player = source.getPlayerOrThrow();
-
-            ObjectNode testNode = JsonUtil.OBJECT_MAPPER.createObjectNode();
-
-            String playerUuid = player.getUniqueId().toString();
-            testNode.put("id", playerUuid);
-            testNode.put("username", player.getName());
-            testNode.put("rank", UserRank.NORMAL.name());
-            testNode.putObject("stats").put("skywars", "0");
-
-            mongoInteractor.post(new WriteTestDocument(testNode)).whenComplete(((queryResult, _) ->
-                    player.sendMessage(Text.convert("<gold><misc:bullet> <dark-green>${queryResult.message()}"))));
-
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                mongoInteractor.post(new GetTestDocument(MongoQueryKey.id(playerUuid))).whenComplete((result, _) -> {
-                    player.sendMessage(Text.convert("<gold><misc:bullet> <dark-green>${result.message()}"));
-                    JsonNode node = result.object();
-                    try {
-                        player.sendMessage(Text.convert(JsonUtil.OBJECT_MAPPER.writeValueAsString(node)));
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
-            }, 20 * 2);
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                mongoInteractor.interactor().remove(MongoCollections.TESTING, MongoQueryKey.id(playerUuid)).whenComplete((result, _) ->
-                        player.sendMessage(Text.convert("<blue><misc:bullet> <pink>${result.message()}")));
-            }, 20 * 10);
             return 1;
         }).build();
     }

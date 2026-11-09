@@ -1,7 +1,7 @@
 package net.rageevent.myriad.api;
 
 import lombok.RequiredArgsConstructor;
-import net.rageevent.myriad.player.UserRank;
+import net.rageevent.myriad.api.player.UserRank;
 
 import java.util.UUID;
 

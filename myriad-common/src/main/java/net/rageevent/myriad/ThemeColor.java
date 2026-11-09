@@ -1,11 +1,9 @@
 package net.rageevent.myriad;
 
 import net.kyori.adventure.text.format.TextColor;
-import net.rageevent.myriad.server.ServerType;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 

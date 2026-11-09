@@ -1,27 +1,27 @@
 package net.rageevent.myriad;
 
-import io.github.crownrealm.conduit.ServerManifest;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import lombok.Getter;
 import lombok.SneakyThrows;
+import net.rageevent.fern.ServerManifest;
 import net.rageevent.governor.api.ControlUnit;
 import net.rageevent.governor.api.server.ServerProfile;
+import net.rageevent.myriad.api.database.api.communication.MessagingDatabaseInteractor;
+import net.rageevent.myriad.api.database.api.database.DatabaseConnection;
+import net.rageevent.myriad.api.database.api.database.MessagingDatabaseConnection;
+import net.rageevent.myriad.api.database.api.mongo.BsonDatabaseInteractor;
+import net.rageevent.myriad.api.database.mongo.MongoConnectionInfo;
+import net.rageevent.myriad.api.database.mongo.MongoDatabaseConnection;
+import net.rageevent.myriad.api.database.redis.RedisConnectionInfo;
+import net.rageevent.myriad.api.database.redis.RedisDatabaseConnection;
+import net.rageevent.myriad.api.server.LobbyType;
+import net.rageevent.myriad.api.server.ServerModeType;
+import net.rageevent.myriad.api.server.ServerType;
 import net.rageevent.myriad.commands.GameCommandNodes;
-import net.rageevent.myriad.database.api.communication.MessagingDatabaseInteractor;
-import net.rageevent.myriad.database.api.database.DatabaseConnection;
-import net.rageevent.myriad.database.api.database.MessagingDatabaseConnection;
-import net.rageevent.myriad.database.api.mongo.BsonDatabaseInteractor;
-import net.rageevent.myriad.database.mongo.MongoConnectionInfo;
-import net.rageevent.myriad.database.mongo.MongoDatabaseConnection;
-import net.rageevent.myriad.database.redis.RedisConnectionInfo;
-import net.rageevent.myriad.database.redis.RedisDatabaseConnection;
 import net.rageevent.myriad.interals.FlagParser;
 import net.rageevent.myriad.listener.ChatListener;
-import net.rageevent.myriad.server.LobbyType;
-import net.rageevent.myriad.server.ServerModeType;
-import net.rageevent.myriad.server.ServerType;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicePriority;
@@ -105,7 +105,6 @@ public final class MyriadBasePlugin extends JavaPlugin {
             commands.register(GameCommandNodes.lobbyNode(controlUnit));
             commands.register(GameCommandNodes.symbols());
             commands.register(GameCommandNodes.redisTest(this));
-            commands.register(GameCommandNodes.mongoTest(this));
             commands.register(GameCommandNodes.transferTest(this));
         });
 

@@ -6,7 +6,6 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerInfo;
 import lombok.RequiredArgsConstructor;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.rageevent.governor.api.EnvelopeAgent;
@@ -16,7 +15,7 @@ import net.rageevent.governor.api.shipments.network.player.TransferResult;
 import net.rageevent.governor.api.shipments.network.server.RegisterGameServer;
 import net.rageevent.governor.api.shipments.network.server.RemoveGameServer;
 import net.rageevent.myriad.Text;
-import net.rageevent.myriad.server.ServerType;
+import net.rageevent.myriad.api.server.ServerType;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
@@ -25,7 +24,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 
 @RequiredArgsConstructor
 public class ServerProxyBridge implements EnvelopeCarrier {

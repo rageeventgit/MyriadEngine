@@ -9,9 +9,9 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.Tag;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.minimessage.tag.standard.StandardTags;
-import net.rageevent.myriad.format.Symbol;
-import net.rageevent.myriad.format.TextFormatHolder;
-import net.rageevent.myriad.player.UserRank;
+import net.rageevent.myriad.api.format.Symbol;
+import net.rageevent.myriad.api.format.TextFormatHolder;
+import net.rageevent.myriad.api.player.UserRank;
 
 import java.util.ArrayList;
 import java.util.HashMap;
