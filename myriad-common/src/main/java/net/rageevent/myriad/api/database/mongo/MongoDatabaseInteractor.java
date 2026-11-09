@@ -5,12 +5,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.UpdateOneModel;
+import com.mongodb.client.model.Updates;
+import com.mongodb.client.model.WriteModel;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.InsertOneResult;
 import com.mongodb.client.result.UpdateResult;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import net.rageevent.myriad.api.database.JsonUtil;
+import net.rageevent.myriad.api.database.api.mongo.BatchResult;
 import net.rageevent.myriad.api.database.api.mongo.BsonDatabaseInteractor;
 import net.rageevent.myriad.api.database.api.mongo.MongoQueryKey;
 import net.rageevent.myriad.api.database.api.query.result.FailedQueryResult;
@@ -18,6 +22,8 @@ import net.rageevent.myriad.api.database.api.query.result.PassedQueryResult;
 import net.rageevent.myriad.api.database.api.query.result.QueryResult;
 import org.bson.Document;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -64,6 +70,17 @@ public class MongoDatabaseInteractor implements BsonDatabaseInteractor {
             if (updateResult.getMatchedCount() == 0 || updateResult.getModifiedCount() == 0)
                 return new FailedQueryResult<>("Failed to update any documents.");
             return new PassedQueryResult<>("Updated document");
+        });
+    }
+
+    @Override
+    public CompletableFuture<QueryResult<BatchResult>> batch(MongoDataCollection collection) {
+        MongoCollection<Document> mongoCollection = collection(collection);
+        return CompletableFuture.supplyAsync(() -> {
+            List<WriteModel<Document>> updatesList = new ArrayList<>();
+
+
+            return new FailedQueryResult<>("Not implemented yet");
         });
     }
 

@@ -13,6 +13,8 @@ public interface BsonDatabaseInteractor extends DatabaseInteractor {
 
     CompletableFuture<QueryResult<Void>> update(MongoDataCollection collection, MongoQueryKey filter, JsonNode value);
 
+    CompletableFuture<QueryResult<BatchResult>> batch(MongoDataCollection collection);
+
     CompletableFuture<QueryResult<JsonNode>> get(MongoDataCollection collection, MongoQueryKey key);
 
     CompletableFuture<QueryResult<Void>> remove(MongoDataCollection collection, MongoQueryKey key);
