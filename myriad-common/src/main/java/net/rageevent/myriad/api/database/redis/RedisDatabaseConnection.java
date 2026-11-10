@@ -11,6 +11,8 @@ import net.rageevent.myriad.api.database.api.communication.LettuceDatabaseIntera
 import net.rageevent.myriad.api.database.api.database.MessagingDatabaseConnection;
 import net.rageevent.myriad.api.database.api.query.Query;
 import net.rageevent.myriad.api.database.api.query.QueryKey;
+import net.rageevent.myriad.api.database.api.query.QueryLane;
+import net.rageevent.myriad.api.database.api.query.SequencedQuery;
 import net.rageevent.myriad.api.database.api.query.result.FailedQueryResult;
 import net.rageevent.myriad.api.database.api.query.result.QueryResult;
 
@@ -30,6 +32,8 @@ public class RedisDatabaseConnection implements MessagingDatabaseConnection<Lett
     private MessageAgentStore agentStore;
 
     private boolean opened;
+
+    private QueryLane queryLane;
 
     @Override
     public void connect() {
@@ -56,7 +60,7 @@ public class RedisDatabaseConnection implements MessagingDatabaseConnection<Lett
                 agentStore.handle(QueryKey.of(channel), message);
             }
         });
-
+        queryLane = new QueryLane(2, "redis-lane");
         interactor = new RedisDatabaseInteractor(pubSubConnection, connection, agentStore);
     }
 
@@ -88,6 +92,16 @@ public class RedisDatabaseConnection implements MessagingDatabaseConnection<Lett
     public <T, Q extends Query<T, LettuceDatabaseInteractor>> CompletableFuture<QueryResult<T>> post(Q query) {
         if (!opened)
             return CompletableFuture.completedFuture(new FailedQueryResult<>("Connection not opened."));
+
+        if (query instanceof SequencedQuery<?, ?> sequencedQuery) {
+            CompletableFuture<QueryResult<T>> out = new CompletableFuture<>();
+            queryLane.executor(sequencedQuery.key()).execute(() -> query.call(interactor).whenComplete((res, ex) -> {
+                if (ex != null) out.completeExceptionally(ex);
+                else out.complete(res);
+            }));
+            return out;
+        }
+
         return query.call(interactor);
     }
 }

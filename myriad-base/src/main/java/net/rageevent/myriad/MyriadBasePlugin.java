@@ -78,14 +78,14 @@ public final class MyriadBasePlugin extends JavaPlugin {
      * Dynamic Player Data Cache & Batched Database Writer
      *
      * DESIGN CONTEXT & ARCHITECTURE:
-     * - Powered by RedisJSON (ReJSON) to manipulate structured player profiles via JSON paths.
+     * - Powered by RedisJSON (ReJSON) to manipulate structured key profiles via JSON paths.
      * - Utilizes a "Dirty-Delta Tracking" pattern to minimize expensive, full-document database serialization.
      * - Player data is categorized into:
      *   1. Global Metadata: Read-heavy fields (rank, username, current server) cached globally while online.
      *   2. Server-Specific Data: Heavy gameplay data (inventories, stats) loaded dynamically on server-join.
      *
      * DATA SYNC & FLUSH PIPELINE:
-     * - Write Operations: Modifying player states creates or appends data to a dedicated dirty key:
+     * - Write Operations: Modifying key states creates or appends data to a dedicated dirty key:
      *   'dirty:serverId:playerId' containing explicit modification operators (e.g., set, increment).
      * - Interval Batched Saving: Every 3 minutes, a background cron task fetches pending dirty keys (using
      *   Redis SCAN or an index SET to avoid blocking), batches the delta writes, flushes them to the persistent

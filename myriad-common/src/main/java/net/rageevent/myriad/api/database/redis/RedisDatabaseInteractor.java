@@ -2,6 +2,7 @@ package net.rageevent.myriad.api.database.redis;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import io.lettuce.core.RedisFuture;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.json.JsonPath;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
@@ -17,6 +18,7 @@ import net.rageevent.myriad.api.database.api.query.result.PassedQueryResult;
 import net.rageevent.myriad.api.database.api.query.result.QueryResult;
 import net.rageevent.myriad.api.database.api.query.result.UnknownQueryResult;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -64,8 +66,14 @@ public class RedisDatabaseInteractor implements LettuceDatabaseInteractor {
     @SneakyThrows
     @Override
     public CompletableFuture<QueryResult<Void>> jsonSet(QueryKey key, JsonNode value) {
+        return jsonSet(key, JsonPath.ROOT_PATH.toString(), value);
+    }
+
+    @SneakyThrows
+    @Override
+    public CompletableFuture<QueryResult<Void>> jsonSet(QueryKey key, String path, JsonNode value) {
         if (!open()) return notConnected();
-        return redisConnection.async().jsonSet(key.namespaced(), JsonPath.ROOT_PATH, JsonUtil.OBJECT_MAPPER.writeValueAsString(value))
+        return redisConnection.async().jsonSet(key.namespaced(), JsonPath.of(path), JsonUtil.OBJECT_MAPPER.writeValueAsString(value))
                 .thenApplyAsync(s -> (QueryResult<Void>) new UnknownQueryResult<Void>(s))
                 .exceptionally(FailedQueryResult::new).toCompletableFuture();
     }
@@ -94,20 +102,31 @@ public class RedisDatabaseInteractor implements LettuceDatabaseInteractor {
 
     @Override
     public CompletableFuture<QueryResult<Void>> jsonRemove(QueryKey key, String path) {
-        return redisConnection.async().jsonDel(key.namespaced(),JsonPath.of(path))
-                .thenApplyAsync(changed -> (QueryResult<Void>) (changed == 0 ? new FailedQueryResult<>("Nothing was deleted") : new PassedQueryResult<>("Deleted path!")))
+        if (!open()) return notConnected();
+        return redisConnection.async().jsonDel(key.namespaced(), JsonPath.of(path))
+                .thenApplyAsync(changed -> {
+                    if (changed == 0)
+                        return new FailedQueryResult<Void>("Nothing was changed");
+                    return (QueryResult<Void>) new PassedQueryResult<Void>("Deleted path!");
+                })
                 .exceptionally(FailedQueryResult::new)
                 .toCompletableFuture();
     }
 
+    //This is practically the same as just doing .set(), but eh.
     @Override
     @SneakyThrows
     public CompletableFuture<QueryResult<Void>> append(QueryKey key, String path, JsonNode node) {
+        if (!open()) return notConnected();
         return redisConnection.async()
-                .jsonArrappend(key.namespaced(), JsonPath.of(path), JsonUtil.OBJECT_MAPPER.writeValueAsString(node))
-                .thenApplyAsync(amount -> (QueryResult<Void>) (amount.isEmpty() ? new FailedQueryResult<>("No keys changed") : new PassedQueryResult<>("Appended json!")))
+                .jsonMerge(key.namespaced(), JsonPath.of(path), JsonUtil.OBJECT_MAPPER.writeValueAsString(node)).thenApplyAsync(amount -> {
+                    if (amount.isEmpty())
+                        return new FailedQueryResult<Void>("No keys changed");
+                    return (QueryResult<Void>) new PassedQueryResult<Void>("Appended json property!");
+                })
                 .exceptionally(FailedQueryResult::new).toCompletableFuture();
     }
+
     @Override
     public CompletableFuture<QueryResult<Void>> append(QueryKey key, JsonNode jsonNode) {
         return append(key, JsonPath.ROOT_PATH.toString(), jsonNode);
@@ -140,5 +159,9 @@ public class RedisDatabaseInteractor implements LettuceDatabaseInteractor {
 
     private <T> CompletableFuture<QueryResult<T>> notConnected() {
         return CompletableFuture.completedFuture(new FailedQueryResult<>("No connection to redis"));
+    }
+
+    private JsonPath fixPath(String path){
+        return null;
     }
 }

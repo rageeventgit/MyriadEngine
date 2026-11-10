@@ -28,9 +28,9 @@ import net.rageevent.myriad.api.database.queries.mongo.GetUserDocument;
 import net.rageevent.myriad.api.database.queries.mongo.WriteJsonDocument;
 import net.rageevent.myriad.api.database.queries.redis.PostUserData;
 import net.rageevent.myriad.api.database.queries.redis.RetrieveUserData;
-import net.rageevent.myriad.json.JsonUtil;
 import net.rageevent.myriad.api.player.UserRank;
 import net.rageevent.myriad.api.server.LobbyType;
+import net.rageevent.myriad.json.JsonUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -82,28 +82,56 @@ public class GameCommandNodes {
             Player player = source.getPlayerOrThrow();
             LettuceDatabaseInteractor interactor = redisConnector.interactor();
 
-            interactor.set(QueryKey.singlet("test"), "Hello world!").whenComplete((result, error) -> {
-                Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    if (error != null) {
-                        player.sendMessage(Text.convert("<red>${error.getMessage()}"));
-                        return;
-                    }
-                    player.sendMessage(Text.convert("<aqua><misc:checkmark></aqua> <green>${result.message()}"));
+            ObjectNode testNode = JsonUtil.OBJECT_MAPPER.createObjectNode();
 
-                }, 0);
+            UUID playerUuid = player.getUniqueId();
+            testNode.put("id", playerUuid.toString());
+            testNode.put("username", player.getName());
+            testNode.put("rank", UserRank.NORMAL.name());
+            redisConnector.post(new PostUserData(playerUuid, testNode)).whenComplete(((result, error) -> {
+                if (error != null) {
+                    player.sendMessage(Text.convert("<red>${error.getMessage()}"));
+                    return;
+                }
+                player.sendMessage(Text.convert("<aqua><misc:bullet></aqua> <green>${result.message()}"));
+            }));
+
+            redisConnector.post(new RetrieveUserData(playerUuid)).whenComplete((result, error) -> {
+                if (error != null) {
+                    player.sendMessage(Text.convert("<red>${error.getMessage()}"));
+                    return;
+                }
+                player.sendMessage(Text.convert("<yellow><misc:bullet></yellow> <gold>Result:</gold> <green>${result.object()}"));
             });
-            Bukkit.getScheduler().runTaskLater(plugin, () -> interactor.get(QueryKey.singlet("test")).whenComplete((result, error) -> {
-                Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    if (error != null) {
-                        player.sendMessage(Text.convert("<red>${error.getMessage()}"));
-                        return;
-                    }
-                    player.sendMessage(Text.convert("<yellow><misc:bullet></yellow> <gold>Result:</gold> <green>${result.object()}"));
 
-                }, 0);
-            }), 20 * 2);
+            ObjectNode updatedNode = JsonUtil.OBJECT_MAPPER
+                    .createObjectNode()
+                    .putObject("stats")
+                    .putObject("skywars").put("skywars_wins", 1120);
 
-            Bukkit.getScheduler().runTaskLater(plugin, () -> interactor.remove(QueryKey.singlet("test")).whenComplete((result, error) -> {
+            try {
+                player.sendMessage(Text.convert(JsonUtil.OBJECT_MAPPER.writeValueAsString(updatedNode)));
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+
+            Bukkit.getScheduler().runTaskLater(plugin, () -> interactor
+                    .append(new QueryKey("user", playerUuid.toString()),"$.stats", updatedNode)
+                    .whenComplete((result, error) -> {
+                        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                            if (error != null) {
+                                player.sendMessage(Text.convert("<red>${error.getMessage()}"));
+                                return;
+                            }
+                            player.sendMessage(Text.convert("<dark-red><misc:bullet></dark-red> <red>Message:</red> <yellow>${result.message()}"));
+
+                            redisConnector.post(new RetrieveUserData(playerUuid)).whenComplete((updatedResult, _) -> {
+                                player.sendMessage(Text.convert("<yellow><misc:bullet></yellow> <gold>Updated Result:</gold> <green>${updatedResult.object()}"));
+                            });
+                        }, 0);
+                    }), 20 * 2);
+
+            Bukkit.getScheduler().runTaskLater(plugin, () -> interactor.remove(new QueryKey("user", playerUuid.toString())).whenComplete((result, error) -> {
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     if (error != null) {
                         player.sendMessage(Text.convert("<red>${error.getMessage()}"));
@@ -111,7 +139,7 @@ public class GameCommandNodes {
                     }
                     player.sendMessage(Text.convert("<dark-red><misc:bullet></dark-red> <red>Message:</red> <yellow>${result.message()}"));
                 }, 0);
-            }), 20 * 6);
+            }), 20 * 15);
             return 1;
         }).build();
     }
@@ -129,7 +157,7 @@ public class GameCommandNodes {
 
     public static LiteralCommandNode<CommandSourceStack> batchTest(MyriadBasePlugin plugin) {
         DatabaseConnection<BsonDatabaseInteractor> mongoInteractor = plugin.getMongoConnector();
-        return literal("transferTest").requires(source -> source.getSender() instanceof Player).executes(context -> {
+        return literal("batchTest").requires(source -> source.getSender() instanceof Player).executes(context -> {
             CommandSourceStack source = context.getSource();
             Player player = source.getPlayerOrThrow();
 
@@ -158,8 +186,7 @@ public class GameCommandNodes {
 
                     defaultNode.put("rank", UserRank.values()[ThreadLocalRandom.current().nextInt(0, UserRank.values().length)].name());
 
-                    defaultNode.putObject("stats")
-                            .put("testhunt", ThreadLocalRandom.current().nextInt(25));
+                    defaultNode.putObject("stats").put("testhunt", ThreadLocalRandom.current().nextInt(25));
 
                     mongoBatches.add(new MongoBatch(updateKey, defaultNode));
                 }
@@ -198,32 +225,29 @@ public class GameCommandNodes {
             testNode.put("rank", UserRank.NORMAL.name());
             testNode.putObject("stats").put("skywars", "0");
 
-            mongoInteractor.post(new WriteJsonDocument(MongoCollections.TESTING, testNode)).whenComplete(((queryResult, _) ->
-                    player.sendMessage(Text.convert("<gold><misc:bullet> <dark-green>${queryResult.message()}"))));
+            mongoInteractor.post(new WriteJsonDocument(MongoCollections.TESTING, testNode)).whenComplete(((queryResult, _) -> player.sendMessage(Text.convert("<gold><misc:bullet> <dark-green>${queryResult.message()}"))));
 
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 mongoInteractor.post(new GetUserDocument(playerUuid)).whenComplete((result, _) -> {
                     player.sendMessage(Text.convert("<gold><misc:bullet> <dark-green>${result.message()}"));
                     JsonNode node = result.object();
 
-                    redisConnector.post(new PostUserData(UUID.fromString(node.get("id").asText()), node)).whenComplete((redisResult, _) ->
-                            player.sendMessage(Text.convert("<yellow><misc:bullet></yellow> <pink>${redisResult.message()}")));
+                    redisConnector.post(new PostUserData(UUID.fromString(node.get("id").asText()), node)).whenComplete((redisResult, _) -> player.sendMessage(Text.convert("<yellow><misc:bullet></yellow> <pink>${redisResult.message()}")));
                 });
             }, 20 * 2);
 
-            Bukkit.getScheduler().runTaskLater(plugin, () ->
-                    redisConnector.post(new RetrieveUserData(playerUuid)).whenComplete((result, _) -> {
-                        if (result.failed()) {
-                            player.sendMessage(Text.convert("<dark-red><misc:x></dark-red> <red>${result.message()}"));
-                            return;
-                        }
-                        JsonNode node = result.object();
-                        try {
-                            player.sendMessage(JsonUtil.OBJECT_MAPPER.writeValueAsString(node));
-                        } catch (JsonProcessingException e) {
-                            player.sendMessage(Text.convert("<dark-red><misc:x></dark-red> <red>${e.getMessage()}"));
-                        }
-                    }), 20 * 6);
+            Bukkit.getScheduler().runTaskLater(plugin, () -> redisConnector.post(new RetrieveUserData(playerUuid)).whenComplete((result, _) -> {
+                if (result.failed()) {
+                    player.sendMessage(Text.convert("<dark-red><misc:x></dark-red> <red>${result.message()}"));
+                    return;
+                }
+                JsonNode node = result.object();
+                try {
+                    player.sendMessage(JsonUtil.OBJECT_MAPPER.writeValueAsString(node));
+                } catch (JsonProcessingException e) {
+                    player.sendMessage(Text.convert("<dark-red><misc:x></dark-red> <red>${e.getMessage()}"));
+                }
+            }), 20 * 6);
             return 1;
         }).build();
     }
