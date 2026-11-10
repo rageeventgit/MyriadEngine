@@ -15,6 +15,8 @@ public interface LettuceDatabaseInteractor extends KeyValueDatabaseInteractor {
     CompletableFuture<QueryResult<Void>> jsonSet(QueryKey key, JsonNode value);
     CompletableFuture<QueryResult<JsonNode>> jsonGet(QueryKey key);
     CompletableFuture<QueryResult<JsonNode>> jsonGet(QueryKey key, String path);
+
+    CompletableFuture<QueryResult<Void>> append(QueryKey key,String path, JsonNode node);
     CompletableFuture<QueryResult<Void>> append(QueryKey key, JsonNode node);
     CompletableFuture<QueryResult<Void>> jsonRemove(QueryKey key, String path);
 

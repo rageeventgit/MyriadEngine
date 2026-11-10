@@ -39,6 +39,11 @@ public class RedisDatabaseInteractor implements LettuceDatabaseInteractor {
     }
 
     @Override
+    public <T> CompletableFuture<QueryResult<T>> message(QueryKey channel, String json) {
+        return messagingStore.handle(channel, json, redisExecutor);
+    }
+
+    @Override
     public CompletableFuture<QueryResult<Void>> set(QueryKey key, Object value) {
         if (!open()) return notConnected();
         return redisConnection.async().set(key.namespaced(), value.toString()).toCompletableFuture()
@@ -55,10 +60,6 @@ public class RedisDatabaseInteractor implements LettuceDatabaseInteractor {
                 .thenApplyAsync(s -> (QueryResult<String>) new PassedQueryResult<>(s, "s"), redisExecutor).exceptionally(FailedQueryResult::new);
     }
 
-    @Override
-    public <T> CompletableFuture<QueryResult<T>> message(QueryKey channel, String json) {
-        return messagingStore.handle(channel, json, redisExecutor);
-    }
 
     @SneakyThrows
     @Override
@@ -67,22 +68,6 @@ public class RedisDatabaseInteractor implements LettuceDatabaseInteractor {
         return redisConnection.async().jsonSet(key.namespaced(), JsonPath.ROOT_PATH, JsonUtil.OBJECT_MAPPER.writeValueAsString(value))
                 .thenApplyAsync(s -> (QueryResult<Void>) new UnknownQueryResult<Void>(s))
                 .exceptionally(FailedQueryResult::new).toCompletableFuture();
-    }
-
-    @Override
-    public CompletableFuture<QueryResult<JsonNode>> jsonGet(QueryKey key) {
-        return jsonGet(key, JsonPath.ROOT_PATH.toString());
-    }
-
-    @Override
-    public CompletableFuture<QueryResult<Void>> append(QueryKey key, JsonNode jsonNode){
-
-        return null;
-    }
-
-    @Override
-    public CompletableFuture<QueryResult<Void>> jsonRemove(QueryKey key, String path) {
-        return null;
     }
 
     @Override
@@ -101,6 +86,33 @@ public class RedisDatabaseInteractor implements LettuceDatabaseInteractor {
             }
         }).exceptionally(FailedQueryResult::new).toCompletableFuture();
     }
+
+    @Override
+    public CompletableFuture<QueryResult<JsonNode>> jsonGet(QueryKey key) {
+        return jsonGet(key, JsonPath.ROOT_PATH.toString());
+    }
+
+    @Override
+    public CompletableFuture<QueryResult<Void>> jsonRemove(QueryKey key, String path) {
+        return redisConnection.async().jsonDel(key.namespaced(),JsonPath.of(path))
+                .thenApplyAsync(changed -> (QueryResult<Void>) (changed == 0 ? new FailedQueryResult<>("Nothing was deleted") : new PassedQueryResult<>("Deleted path!")))
+                .exceptionally(FailedQueryResult::new)
+                .toCompletableFuture();
+    }
+
+    @Override
+    @SneakyThrows
+    public CompletableFuture<QueryResult<Void>> append(QueryKey key, String path, JsonNode node) {
+        return redisConnection.async()
+                .jsonArrappend(key.namespaced(), JsonPath.of(path), JsonUtil.OBJECT_MAPPER.writeValueAsString(node))
+                .thenApplyAsync(amount -> (QueryResult<Void>) (amount.isEmpty() ? new FailedQueryResult<>("No keys changed") : new PassedQueryResult<>("Appended json!")))
+                .exceptionally(FailedQueryResult::new).toCompletableFuture();
+    }
+    @Override
+    public CompletableFuture<QueryResult<Void>> append(QueryKey key, JsonNode jsonNode) {
+        return append(key, JsonPath.ROOT_PATH.toString(), jsonNode);
+    }
+
 
     @Override
     public CompletableFuture<QueryResult<Void>> remove(QueryKey key) {
