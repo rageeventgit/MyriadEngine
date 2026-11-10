@@ -75,6 +75,17 @@ public class RedisDatabaseInteractor implements LettuceDatabaseInteractor {
     }
 
     @Override
+    public CompletableFuture<QueryResult<Void>> append(QueryKey key, JsonNode jsonNode){
+
+        return null;
+    }
+
+    @Override
+    public CompletableFuture<QueryResult<Void>> jsonRemove(QueryKey key, String path) {
+        return null;
+    }
+
+    @Override
     public CompletableFuture<QueryResult<JsonNode>> jsonGet(QueryKey key, String path) {
         if (!open()) return notConnected();
 

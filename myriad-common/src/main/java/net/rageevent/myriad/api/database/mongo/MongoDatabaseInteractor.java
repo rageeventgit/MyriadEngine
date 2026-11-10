@@ -3,6 +3,7 @@ package net.rageevent.myriad.api.database.mongo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.UpdateOneModel;
@@ -16,6 +17,7 @@ import lombok.SneakyThrows;
 import net.rageevent.myriad.api.database.JsonUtil;
 import net.rageevent.myriad.api.database.api.mongo.BatchResult;
 import net.rageevent.myriad.api.database.api.mongo.BsonDatabaseInteractor;
+import net.rageevent.myriad.api.database.api.mongo.MongoBatch;
 import net.rageevent.myriad.api.database.api.mongo.MongoQueryKey;
 import net.rageevent.myriad.api.database.api.query.result.FailedQueryResult;
 import net.rageevent.myriad.api.database.api.query.result.PassedQueryResult;
@@ -24,6 +26,7 @@ import org.bson.Document;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -59,14 +62,15 @@ public class MongoDatabaseInteractor implements BsonDatabaseInteractor {
         }, mongoExecutor);
     }
 
+
+    //TODO: Fix this, it will override everything.
     @SneakyThrows
     @Override
-    public CompletableFuture<QueryResult<Void>> update(MongoDataCollection collection, MongoQueryKey filter, JsonNode value) {
+    public CompletableFuture<QueryResult<Void>> update(MongoDataCollection collection, MongoQueryKey filter, JsonNode changed) {
         MongoCollection<Document> mongoCollection = collection(collection);
         Document filterDocument = new Document(filter.key(), filter.value());
         return CompletableFuture.supplyAsync(() -> {
-            UpdateResult updateResult = mongoCollection.updateOne(filterDocument, toDocument(value));
-
+            UpdateResult updateResult = mongoCollection.updateOne(filterDocument, toDocument(changed));
             if (updateResult.getMatchedCount() == 0 || updateResult.getModifiedCount() == 0)
                 return new FailedQueryResult<>("Failed to update any documents.");
             return new PassedQueryResult<>("Updated document");
@@ -74,13 +78,40 @@ public class MongoDatabaseInteractor implements BsonDatabaseInteractor {
     }
 
     @Override
-    public CompletableFuture<QueryResult<BatchResult>> batch(MongoDataCollection collection) {
+    public CompletableFuture<QueryResult<BatchResult>> batch(MongoDataCollection collection, List<MongoBatch> updatedBatches) {
         MongoCollection<Document> mongoCollection = collection(collection);
         return CompletableFuture.supplyAsync(() -> {
+            if (updatedBatches.isEmpty())
+                return new FailedQueryResult<>("No documents to modify.");
+
             List<WriteModel<Document>> updatesList = new ArrayList<>();
+            for (MongoBatch mongoBatch : updatedBatches) {
+                MongoQueryKey filter = mongoBatch.filter();
+                JsonNode updated = mongoBatch.updated();
 
+                String updatedJson;
+                try {
+                    updatedJson = JsonUtil.OBJECT_MAPPER.writeValueAsString(updated);
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                }
+                Document changedDataDocument = Document.parse(updatedJson);
 
-            return new FailedQueryResult<>("Not implemented yet");
+                Document filterDocument = new Document(filter.key(), filter.value());
+                Document flattenedDocument = new Document();
+
+                flatten("", changedDataDocument, flattenedDocument);
+
+                //Lotus is bugging out the operation, so I have to do this...
+                Document updateOperation = new Document("$" + "set", flattenedDocument);
+                updatesList.add(new UpdateOneModel<>(filterDocument, updateOperation));
+            }
+            BulkWriteResult bulkWriteResult = mongoCollection.bulkWrite(updatesList);
+
+            if (bulkWriteResult.getModifiedCount() == 0)
+                return new FailedQueryResult<>("Failed to modify documents.");
+
+            return new PassedQueryResult<>(new BatchResult(updatedBatches.size(), bulkWriteResult.getModifiedCount()));
         });
     }
 
@@ -114,7 +145,6 @@ public class MongoDatabaseInteractor implements BsonDatabaseInteractor {
         Document filter = new Document(base, value);
         return CompletableFuture.supplyAsync(() -> {
             DeleteResult deleted = mongoCollection.deleteOne(filter);
-
             if (deleted.getDeletedCount() == 0)
                 return new FailedQueryResult<>("No document found to delete.");
 
@@ -146,5 +176,19 @@ public class MongoDatabaseInteractor implements BsonDatabaseInteractor {
         JsonNode idNode = rawNode.get("_id");
         modifiedNode.remove("_id");
         return modifiedNode.set("id", idNode);
+    }
+
+    private void flatten(String prefix, Document current, Document result) {
+        for (Map.Entry<String, Object> entry : current.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+
+            String newKey = prefix.isEmpty() ? key : prefix + "." + key;
+
+            if (value instanceof Document)
+                flatten(newKey, (Document) value, result);
+            else
+                result.put(newKey, value);
+        }
     }
 }
