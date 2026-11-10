@@ -18,5 +18,7 @@ public interface BsonDatabaseInteractor extends DatabaseInteractor {
 
     CompletableFuture<QueryResult<JsonNode>> get(MongoDataCollection collection, MongoQueryKey key);
 
+    CompletableFuture<QueryResult<JsonNode>> nested(MongoDataCollection collection, MongoQueryKey key,List<String> paths);
+
     CompletableFuture<QueryResult<Void>> remove(MongoDataCollection collection, MongoQueryKey key);
 }

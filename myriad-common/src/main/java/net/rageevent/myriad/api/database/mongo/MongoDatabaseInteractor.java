@@ -33,6 +33,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Projections.*;
 
 @RequiredArgsConstructor
 public class MongoDatabaseInteractor implements BsonDatabaseInteractor {
@@ -70,11 +71,26 @@ public class MongoDatabaseInteractor implements BsonDatabaseInteractor {
         MongoCollection<Document> mongoCollection = collection(collection);
         Document filterDocument = new Document(filter.key(), filter.value());
         return CompletableFuture.supplyAsync(() -> {
-            UpdateResult updateResult = mongoCollection.updateOne(filterDocument, toDocument(changed));
-            if (updateResult.getMatchedCount() == 0 || updateResult.getModifiedCount() == 0)
-                return new FailedQueryResult<>("Failed to update any documents.");
+            String updatedJson;
+            try {
+                updatedJson = JsonUtil.OBJECT_MAPPER.writeValueAsString(changed);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+            Document changedDataDocument = Document.parse(updatedJson);
+            Document flattenedDocument = new Document();
+
+            flatten("", changedDataDocument, flattenedDocument);
+
+            Document updateOperation = new Document("$" + "set", flattenedDocument);
+
+            UpdateResult updateResult = mongoCollection.updateOne(filterDocument, updateOperation);
+
+            if(updateResult.getModifiedCount() == 0)
+                return new FailedQueryResult<>("Couldn't find document");
+
             return new PassedQueryResult<>("Updated document");
-        });
+        },mongoExecutor);
     }
 
     @Override
@@ -112,7 +128,7 @@ public class MongoDatabaseInteractor implements BsonDatabaseInteractor {
                 return new FailedQueryResult<>("Failed to modify documents.");
 
             return new PassedQueryResult<>(new BatchResult(updatedBatches.size(), bulkWriteResult.getModifiedCount()));
-        });
+        },mongoExecutor);
     }
 
     @Override
@@ -131,9 +147,32 @@ public class MongoDatabaseInteractor implements BsonDatabaseInteractor {
             try {
                 return new PassedQueryResult<>(fromMongoNode(JsonUtil.OBJECT_MAPPER.readValue(docJson, JsonNode.class)));
             } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
+                return new FailedQueryResult<>(e);
             }
         }, mongoExecutor);
+    }
+
+    @Override
+    public CompletableFuture<QueryResult<JsonNode>> nested(MongoDataCollection collection, MongoQueryKey key, List<String> paths) {
+        String base = key.key();
+        Object value = key.value();
+
+        MongoCollection<Document> mongoCollection = collection(collection);
+        return CompletableFuture.supplyAsync(() -> {
+            Document firstFound = mongoCollection.find(eq(base,value))
+                    .projection(fields(include(paths),excludeId()))
+                    .first();
+
+            if (firstFound == null)
+                return new FailedQueryResult<>("Couldn't find document with key '${base}' filterKey '${value}'");
+
+            String docJson = firstFound.toJson();
+            try {
+                return new PassedQueryResult<>(fromMongoNode(JsonUtil.OBJECT_MAPPER.readValue(docJson, JsonNode.class)));
+            } catch (JsonProcessingException e) {
+                return new FailedQueryResult<>(e);
+            }
+        },mongoExecutor);
     }
 
     @Override
@@ -149,7 +188,7 @@ public class MongoDatabaseInteractor implements BsonDatabaseInteractor {
                 return new FailedQueryResult<>("No document found to delete.");
 
             return new PassedQueryResult<>("Successfully deleted document.");
-        });
+        },mongoExecutor);
     }
 
 
