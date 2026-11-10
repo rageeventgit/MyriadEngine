@@ -136,9 +136,9 @@ public class RedisDatabaseInteractor implements LettuceDatabaseInteractor {
     @Override
     public CompletableFuture<QueryResult<Void>> remove(QueryKey key) {
         return redisConnection.async().del(key.namespaced())
-                .thenApplyAsync(s -> {
-                    if (s == 0) return new FailedQueryResult<Void>("No objects deleted");
-                    return (QueryResult<Void>) new PassedQueryResult<Void>("Successfully deleted '$s' documents");
+                .thenApplyAsync(amount -> {
+                    if (amount == 0) return new FailedQueryResult<Void>("No objects deleted");
+                    return (QueryResult<Void>) new PassedQueryResult<Void>("Successfully deleted '$amount' documents");
                 }).exceptionally(FailedQueryResult::new).toCompletableFuture();
     }
 

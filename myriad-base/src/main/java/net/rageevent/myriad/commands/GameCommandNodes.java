@@ -104,10 +104,8 @@ public class GameCommandNodes {
                 player.sendMessage(Text.convert("<yellow><misc:bullet></yellow> <gold>Result:</gold> <green>${result.object()}"));
             });
 
-            ObjectNode updatedNode = JsonUtil.OBJECT_MAPPER
-                    .createObjectNode()
-                    .putObject("stats")
-                    .putObject("skywars").put("skywars_wins", 1120);
+            ObjectNode updatedNode = JsonUtil.OBJECT_MAPPER.createObjectNode();
+            updatedNode.putObject("skywars").put("skywars_wins", 1120);
 
             try {
                 player.sendMessage(Text.convert(JsonUtil.OBJECT_MAPPER.writeValueAsString(updatedNode)));
@@ -116,7 +114,7 @@ public class GameCommandNodes {
             }
 
             Bukkit.getScheduler().runTaskLater(plugin, () -> interactor
-                    .append(new QueryKey("user", playerUuid.toString()),"$.stats", updatedNode)
+                    .append(new QueryKey("user", playerUuid.toString()), "$.stats", updatedNode)
                     .whenComplete((result, error) -> {
                         Bukkit.getScheduler().runTaskLater(plugin, () -> {
                             if (error != null) {
