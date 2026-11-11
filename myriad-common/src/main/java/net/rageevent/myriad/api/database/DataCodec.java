@@ -1,7 +1,7 @@
 package net.rageevent.myriad.api.database;
 
-public interface DataCodec<T> {
+public interface DataCodec {
 
-    Object serialize(T object);
-    T deserialize(String value);
+    Object serialize(Object object);
+    Object deserialize(String value);
 }

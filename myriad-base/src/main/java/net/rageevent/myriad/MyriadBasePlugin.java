@@ -8,6 +8,7 @@ import lombok.SneakyThrows;
 import net.rageevent.fern.ServerManifest;
 import net.rageevent.governor.api.ControlUnit;
 import net.rageevent.governor.api.server.ServerProfile;
+import net.rageevent.myriad.api.DataAccessor;
 import net.rageevent.myriad.api.database.api.communication.LettuceDatabaseInteractor;
 import net.rageevent.myriad.api.database.api.database.DatabaseConnection;
 import net.rageevent.myriad.api.database.api.database.MessagingDatabaseConnection;
@@ -147,6 +148,7 @@ public final class MyriadBasePlugin extends JavaPlugin {
         mongoConnector = new MongoDatabaseConnection(new MongoConnectionInfo("mongodb://127.0.0.1:27017/", "fern", "admin", mongoPassword));
         mongoConnector.connect();
 
+        DataAccessor.connection(redisConnector);
         getServer().getServicesManager().register(ControlUnit.class, controlUnit, this, ServicePriority.High);
         getServer().getServicesManager().register(ServerManifest.class, serverManifest, this, ServicePriority.High);
 
@@ -157,8 +159,7 @@ public final class MyriadBasePlugin extends JavaPlugin {
             commands.register(GameCommandNodes.lobbyNode(controlUnit));
             commands.register(GameCommandNodes.symbols());
             commands.register(GameCommandNodes.redisTest(this));
-            commands.register(GameCommandNodes.transferTest(this));
-            commands.register(GameCommandNodes.batchTest(this));
+            commands.register(GameCommandNodes.userTest(this));
         });
 
         Bukkit.getPluginManager().registerEvents(new ChatListener(), this);

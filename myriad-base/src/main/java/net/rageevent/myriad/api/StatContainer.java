@@ -2,7 +2,19 @@ package net.rageevent.myriad.api;
 
 import net.rageevent.myriad.api.server.ServerType;
 
-//Has stats based on game types.
-public interface StatContainer extends DataContainer{
+public interface StatContainer extends SectionedDataContainer {
     ServerType gameType();
+
+    @Override
+    default String section() {
+        return gameType().id();
+    }
+
+    @Override
+    default String dotNotation() {
+        return "stats." + SectionedDataContainer.super.dotNotation();
+    }
+
+
+
 }

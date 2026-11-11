@@ -82,12 +82,20 @@ public class RedisDatabaseInteractor implements LettuceDatabaseInteractor {
     public CompletableFuture<QueryResult<JsonNode>> jsonGet(QueryKey key, String path) {
         if (!open()) return notConnected();
 
+        boolean jsonPath = path.startsWith("$");
         return redisConnection.async().jsonGetRaw(key.namespaced(), new JsonPath(path)).thenApplyAsync(list -> {
-            if (list.isEmpty()) return new FailedQueryResult<JsonNode>("Could not find json data.");
+            if (list.isEmpty() || list.getFirst() == null) return new FailedQueryResult<JsonNode>("Could not find json data.");
             String rawJsonData = list.getFirst();
 
             try {
                 JsonNode jsonData = JsonUtil.OBJECT_MAPPER.readValue(rawJsonData, JsonNode.class);
+
+                // A $-prefixed JSONPath returns an array of every match, so take the first one
+                if (jsonPath && jsonData.isArray()) {
+                    if (jsonData.isEmpty()) return new FailedQueryResult<JsonNode>("No value at path '" + path + "'");
+                    jsonData = jsonData.get(0);
+                }
+
                 return (QueryResult<JsonNode>) new PassedQueryResult<>(jsonData, "Found json with key '${key.namespaced()}'");
             } catch (JsonProcessingException e) {
                 return new FailedQueryResult<JsonNode>(e);

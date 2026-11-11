@@ -8,9 +8,9 @@ import java.util.UUID;
 @UtilityClass
 public class DataCodecs {
 
-    public final DataCodec<UUID> UUID = new DataCodec<>() {
+    public final DataCodec UUID = new DataCodec() {
         @Override
-        public Object serialize(UUID object) {
+        public Object serialize(Object object) {
             return object.toString();
         }
 
@@ -19,10 +19,10 @@ public class DataCodecs {
             return java.util.UUID.fromString(value);
         }
     };
-    public final DataCodec<UserRank> USER_RANK = new DataCodec<>() {
+    public final DataCodec USER_RANK = new DataCodec() {
         @Override
-        public Object serialize(UserRank object) {
-            return object.name();
+        public Object serialize(Object object) {
+            return ((UserRank) object).name();
         }
 
         @Override
