@@ -1,4 +1,4 @@
-package net.rageevent.myriad.api.database.queries.redis;
+package net.rageevent.myriad.api.queries.redis;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import net.rageevent.myriad.api.database.api.communication.LettuceDatabaseInteractor;

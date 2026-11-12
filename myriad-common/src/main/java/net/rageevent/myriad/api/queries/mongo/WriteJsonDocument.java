@@ -1,4 +1,4 @@
-package net.rageevent.myriad.api.database.queries.mongo;
+package net.rageevent.myriad.api.queries.mongo;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import net.rageevent.myriad.api.database.api.mongo.BsonDatabaseInteractor;

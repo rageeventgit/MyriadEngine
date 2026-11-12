@@ -8,7 +8,7 @@ import lombok.SneakyThrows;
 import net.rageevent.fern.ServerManifest;
 import net.rageevent.governor.api.ControlUnit;
 import net.rageevent.governor.api.server.ServerProfile;
-import net.rageevent.myriad.api.DataAccessor;
+import net.rageevent.myriad.api.player.store.DataAccessor;
 import net.rageevent.myriad.api.database.api.communication.LettuceDatabaseInteractor;
 import net.rageevent.myriad.api.database.api.database.DatabaseConnection;
 import net.rageevent.myriad.api.database.api.database.MessagingDatabaseConnection;
@@ -157,9 +157,6 @@ public final class MyriadBasePlugin extends JavaPlugin {
         lifecycleManager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands commands = event.registrar();
             commands.register(GameCommandNodes.lobbyNode(controlUnit));
-            commands.register(GameCommandNodes.symbols());
-            commands.register(GameCommandNodes.redisTest(this));
-            commands.register(GameCommandNodes.userTest(this));
         });
 
         Bukkit.getPluginManager().registerEvents(new ChatListener(), this);

@@ -1,10 +1,10 @@
-package net.rageevent.myriad.api;
+package net.rageevent.myriad.api.player.store;
 
 import lombok.SneakyThrows;
 import net.rageevent.myriad.api.database.DataCodec;
 import net.rageevent.myriad.api.database.api.query.result.QueryResult;
-import net.rageevent.myriad.api.queries.GetUserValueQuery;
-import net.rageevent.myriad.api.queries.SetUserDataQuery;
+import net.rageevent.myriad.api.queries.redis.user.GetUserValueQuery;
+import net.rageevent.myriad.api.queries.redis.user.SetUserDataQuery;
 
 import java.util.UUID;
 

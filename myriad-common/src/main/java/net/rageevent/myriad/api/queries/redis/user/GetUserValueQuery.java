@@ -1,8 +1,7 @@
-package net.rageevent.myriad.api.queries;
+package net.rageevent.myriad.api.queries.redis.user;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import net.rageevent.myriad.api.DataContainer;
 import net.rageevent.myriad.api.database.JsonUtil;
 import net.rageevent.myriad.api.database.api.communication.LettuceDatabaseInteractor;
 import net.rageevent.myriad.api.database.api.query.QueryKey;
@@ -10,6 +9,7 @@ import net.rageevent.myriad.api.database.api.query.SequencedQuery;
 import net.rageevent.myriad.api.database.api.query.result.FailedQueryResult;
 import net.rageevent.myriad.api.database.api.query.result.PassedQueryResult;
 import net.rageevent.myriad.api.database.api.query.result.QueryResult;
+import net.rageevent.myriad.api.player.store.DataContainer;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;

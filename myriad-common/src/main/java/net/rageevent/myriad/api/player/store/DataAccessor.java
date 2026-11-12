@@ -1,6 +1,5 @@
-package net.rageevent.myriad.api;
+package net.rageevent.myriad.api.player.store;
 
-import lombok.Data;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.rageevent.myriad.api.database.api.communication.LettuceDatabaseInteractor;

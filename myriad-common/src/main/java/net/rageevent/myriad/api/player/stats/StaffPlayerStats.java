@@ -1,7 +1,7 @@
-package net.rageevent.myriad.api.stats;
+package net.rageevent.myriad.api.player.stats;
 
 import lombok.RequiredArgsConstructor;
-import net.rageevent.myriad.api.SectionedDataContainer;
+import net.rageevent.myriad.api.player.store.SectionedDataContainer;
 import net.rageevent.myriad.api.player.UserRank;
 
 @RequiredArgsConstructor

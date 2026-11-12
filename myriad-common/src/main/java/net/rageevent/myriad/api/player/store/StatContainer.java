@@ -1,4 +1,4 @@
-package net.rageevent.myriad.api;
+package net.rageevent.myriad.api.player.store;
 
 import net.rageevent.myriad.api.server.ServerType;
 

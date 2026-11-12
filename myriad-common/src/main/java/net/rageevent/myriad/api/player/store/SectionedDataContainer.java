@@ -1,6 +1,4 @@
-package net.rageevent.myriad.api;
-
-import net.rageevent.myriad.api.server.ServerType;
+package net.rageevent.myriad.api.player.store;
 
 public interface SectionedDataContainer extends DataContainer {
     String section();

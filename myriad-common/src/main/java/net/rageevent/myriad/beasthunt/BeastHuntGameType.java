@@ -12,9 +12,11 @@ import net.rageevent.myriad.api.server.ServerModeType;
 public enum BeastHuntGameType implements ServerModeType {
 
     BEAST_CLASSIC("Beast Hunt", GameType.BEAST_HUNT),
+    DOUBLE_BEAST("Double Trouble", GameType.BEAST_HUNT),
+    BEAST_SABOTAGE("Sabotage", GameType.BEAST_HUNT),
+
     ;
 
     private final String visualName;
     private final GameType type;
-
 }
