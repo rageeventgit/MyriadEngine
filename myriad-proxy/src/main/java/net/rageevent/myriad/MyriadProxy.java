@@ -11,8 +11,16 @@ import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import net.rageevent.fern.ServerManifest;
 import net.rageevent.governor.api.ControlUnit;
 import net.rageevent.governor.api.server.ServerProfile;
+import net.rageevent.myriad.api.database.api.communication.LettuceDatabaseInteractor;
+import net.rageevent.myriad.api.database.api.database.DatabaseConnection;
+import net.rageevent.myriad.api.database.api.database.MessagingDatabaseConnection;
+import net.rageevent.myriad.api.database.api.mongo.BsonDatabaseInteractor;
+import net.rageevent.myriad.api.database.mongo.MongoConnectionInfo;
+import net.rageevent.myriad.api.database.mongo.MongoDatabaseConnection;
+import net.rageevent.myriad.api.database.redis.RedisConnectionInfo;
+import net.rageevent.myriad.api.database.redis.RedisDatabaseConnection;
 import net.rageevent.myriad.internal.FlagParser;
-import net.rageevent.myriad.overseer.PlayerSync;
+import net.rageevent.myriad.overseer.PlayerHandler;
 import net.rageevent.myriad.overseer.ServerProxyBridge;
 
 import java.util.ArrayList;
@@ -23,6 +31,9 @@ public class MyriadProxy {
     private final ProxyServer proxyServer;
     private final ComponentLogger logger;
     private ControlUnit controlUnit;
+
+    private DatabaseConnection<BsonDatabaseInteractor> mongoConnector;
+    private MessagingDatabaseConnection<LettuceDatabaseInteractor> redisConnector;
 
     @Inject
     public MyriadProxy(ProxyServer proxyServer, ComponentLogger logger) {
@@ -39,13 +50,21 @@ public class MyriadProxy {
         int hostPort = Integer.parseInt(FlagParser.getFlag("governor.port"));
         String hostConnection = FlagParser.getFlag("governor.host");
 
+        String redisPassword = FlagParser.getFlag("redis.p");
+        String mongoPassword = FlagParser.getFlag("mongo.p");
+
+        redisConnector = new RedisDatabaseConnection(new RedisConnectionInfo("127.0.0.1", 6379, "default", redisPassword));
+        mongoConnector = new MongoDatabaseConnection(new MongoConnectionInfo("mongodb://127.0.0.1:27017/", "fern", "admin", mongoPassword));
+
+
         controlUnit = new ControlUnit(new ControlUnit.Connection(serverManifest.name(), hostConnection, hostPort), ServerProfile.proxy());
-        PlayerSync playerSync = new PlayerSync(proxyServer, controlUnit);
+
+        PlayerHandler playerHandler = new PlayerHandler(proxyServer,logger, mongoConnector, redisConnector, controlUnit);
         controlUnit
                 .install(new ServerProxyBridge(proxyServer, logger))
-                .listen(playerSync);
+                .listen(playerHandler);
 
-        proxyServer.getEventManager().register(this, playerSync);
+        proxyServer.getEventManager().register(this, playerHandler);
 
         controlUnit.connect().whenComplete(((parcelConnection, throwable) -> {
             if (throwable != null) {
@@ -54,6 +73,10 @@ public class MyriadProxy {
             }
             logger.debug(Text.convert("<green>Successfully connect to <yellow>Governor</yellow>. <gray>(${parcelConnection.name()})"));
         }));
+
+        redisConnector.connect();
+
+        mongoConnector.connect();
 
     }
 

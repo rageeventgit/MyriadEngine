@@ -11,7 +11,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public enum BasePlayerStats implements DataContainer {
 
-    UNIQUE_ID("key", UUID.class, null, DataCodecs.UUID),
+    UNIQUE_ID("uuid", UUID.class, null, DataCodecs.UUID),
     USERNAME(String.class, ""),
     RANK(UserRank.class, UserRank.NORMAL),
     ;

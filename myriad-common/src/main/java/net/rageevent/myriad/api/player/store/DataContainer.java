@@ -30,21 +30,28 @@ public interface DataContainer {
         Object newValue = value;
         if (codec() != null)
             newValue = codec().serialize(value);
-        DataAccessor.connection.post(new SetUserDataQuery(uuid, this, newValue));
+
+        DataAccessor.connection.post(new SetUserDataQuery(uuid, this, newValue)).whenComplete(((voidQueryResult, throwable) ->
+                System.out.println(voidQueryResult.message() + " FAILED: " + voidQueryResult.failed())));
+    }
+
+    default <T> T get(UUID uuid) {
+        return (T) get(uuid, defaultType());
     }
 
     @SneakyThrows
-    default <T> T get(UUID uuid) {
+    default <T> T get(UUID uuid, Class<T> typeClass) {
         QueryResult<Object> queryResult = DataAccessor.connection.post(new GetUserValueQuery<>(uuid, this)).get();
-        System.out.println(dotNotation());
-        if(queryResult.failed()) {
-            System.out.println(queryResult.message());
-            return null;
+        if (queryResult.failed()) {
+            return typeClass.cast(defaultValue());
         }
-
         Object value = queryResult.object();
-        if(codec() != null)
-            return (T) defaultType().cast(codec().deserialize(value.toString()));
-        return (T) defaultType().cast(value);
+
+        if (value == null)
+            return typeClass.cast(defaultValue());
+
+        if (codec() != null)
+            return typeClass.cast(codec().deserialize(value.toString()));
+        return typeClass.cast(value);
     }
 }

@@ -19,10 +19,7 @@ import net.rageevent.myriad.api.database.api.query.result.QueryResult;
 import net.rageevent.myriad.api.database.api.query.result.UnknownQueryResult;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 @RequiredArgsConstructor
 public class RedisDatabaseInteractor implements LettuceDatabaseInteractor {
@@ -74,7 +71,7 @@ public class RedisDatabaseInteractor implements LettuceDatabaseInteractor {
     public CompletableFuture<QueryResult<Void>> jsonSet(QueryKey key, String path, JsonNode value) {
         if (!open()) return notConnected();
         return redisConnection.async().jsonSet(key.namespaced(), JsonPath.of(path), JsonUtil.OBJECT_MAPPER.writeValueAsString(value))
-                .thenApplyAsync(s -> (QueryResult<Void>) new UnknownQueryResult<Void>(s))
+                .thenApplyAsync(s -> (QueryResult<Void>) new PassedQueryResult<Void>(s))
                 .exceptionally(FailedQueryResult::new).toCompletableFuture();
     }
 
@@ -128,11 +125,15 @@ public class RedisDatabaseInteractor implements LettuceDatabaseInteractor {
         if (!open()) return notConnected();
         return redisConnection.async()
                 .jsonMerge(key.namespaced(), JsonPath.of(path), JsonUtil.OBJECT_MAPPER.writeValueAsString(node)).thenApplyAsync(amount -> {
-                    if (amount.isEmpty())
-                        return new FailedQueryResult<Void>("No keys changed");
+                    if (amount == null || amount.isEmpty()) {
+                        try {
+                            return jsonSet(key, path, node).get();
+                        } catch (InterruptedException | ExecutionException e) {
+                            return new FailedQueryResult<Void>(e);
+                        }
+                    }
                     return (QueryResult<Void>) new PassedQueryResult<Void>("Appended json property!");
-                })
-                .exceptionally(FailedQueryResult::new).toCompletableFuture();
+                }).exceptionally(FailedQueryResult::new).toCompletableFuture();
     }
 
     @Override
@@ -169,7 +170,7 @@ public class RedisDatabaseInteractor implements LettuceDatabaseInteractor {
         return CompletableFuture.completedFuture(new FailedQueryResult<>("No connection to redis"));
     }
 
-    private JsonPath fixPath(String path){
+    private JsonPath fixPath(String path) {
         return null;
     }
 }

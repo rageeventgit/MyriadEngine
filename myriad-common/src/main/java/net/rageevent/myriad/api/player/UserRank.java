@@ -21,7 +21,7 @@ public enum UserRank implements TextFormatHolder {
     CAPTAIN("⛵", ThemeColor.DARK_BLUE),
 
     YOUTUBER("\uD83D\uDCBE", ThemeColor.GOLD),
-    ADMIN("⌘", ThemeColor.RED),
+    ADMIN("\uD83D\uDD79", ThemeColor.RED),
     ;
     private final String symbol;
     private final TextColor color;

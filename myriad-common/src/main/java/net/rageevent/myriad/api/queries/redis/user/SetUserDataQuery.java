@@ -19,8 +19,8 @@ public record SetUserDataQuery(UUID key, DataContainer container,
     public CompletableFuture<QueryResult<Void>> call(LettuceDatabaseInteractor interactor) {
         return interactor.append(
                 new QueryKey("user", key.toString()),
-                "$." + container.dotNotation(),
-                JsonUtil.OBJECT_MAPPER.valueToTree(value.toString())
+                "$",
+                JsonUtil.nest(container.dotNotation(),JsonUtil.OBJECT_MAPPER.valueToTree(value))
         );
     }
 }

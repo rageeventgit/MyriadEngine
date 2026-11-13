@@ -8,6 +8,7 @@ import lombok.SneakyThrows;
 import net.rageevent.fern.ServerManifest;
 import net.rageevent.governor.api.ControlUnit;
 import net.rageevent.governor.api.server.ServerProfile;
+import net.rageevent.myriad.api.player.stats.StaffPlayerStats;
 import net.rageevent.myriad.api.player.store.DataAccessor;
 import net.rageevent.myriad.api.database.api.communication.LettuceDatabaseInteractor;
 import net.rageevent.myriad.api.database.api.database.DatabaseConnection;
@@ -21,6 +22,7 @@ import net.rageevent.myriad.api.server.LobbyType;
 import net.rageevent.myriad.api.server.ServerModeType;
 import net.rageevent.myriad.api.server.ServerType;
 import net.rageevent.myriad.commands.GameCommandNodes;
+import net.rageevent.myriad.commands.StaffCommandNodes;
 import net.rageevent.myriad.interals.FlagParser;
 import net.rageevent.myriad.listener.ChatListener;
 import org.bukkit.Bukkit;
@@ -40,7 +42,6 @@ public final class MyriadBasePlugin extends JavaPlugin {
     private ServerManifest serverManifest;
 
     private MessagingDatabaseConnection<LettuceDatabaseInteractor> redisConnector;
-    private DatabaseConnection<BsonDatabaseInteractor> mongoConnector;
 
     /**
      * Processes incoming dirty-state tracking blocks received from the Redis cache layer
@@ -107,8 +108,6 @@ public final class MyriadBasePlugin extends JavaPlugin {
         String hostConnection = FlagParser.getFlag("hub.host");
 
         String redisPassword = FlagParser.getFlag("redis.p");
-        String mongoPassword = FlagParser.getFlag("mongo.p");
-
 
         Path serverDirectory = Bukkit.getWorldContainer().toPath();
 
@@ -140,14 +139,10 @@ public final class MyriadBasePlugin extends JavaPlugin {
                 getComponentLogger().error(Text.convert("<red>%s <gray>(%s)".formatted(throwable.getLocalizedMessage(), throwable.getClass().getSimpleName())));
                 return;
             }
-            getComponentLogger().debug(Text.convert("<green>Successfully connect to <blue>Overseer</blue>. <gray>(%s)".formatted(parcelConnection.name())));
+            getComponentLogger().debug(Text.convert("<green>Successfully connect to <yellow>Governor</yellow>. <gray>(%s)".formatted(parcelConnection.name())));
         }));
         redisConnector = new RedisDatabaseConnection(new RedisConnectionInfo("127.0.0.1", 6379, "default", redisPassword));
         redisConnector.connect();
-
-        mongoConnector = new MongoDatabaseConnection(new MongoConnectionInfo("mongodb://127.0.0.1:27017/", "fern", "admin", mongoPassword));
-        mongoConnector.connect();
-
         DataAccessor.connection(redisConnector);
         getServer().getServicesManager().register(ControlUnit.class, controlUnit, this, ServicePriority.High);
         getServer().getServicesManager().register(ServerManifest.class, serverManifest, this, ServicePriority.High);
@@ -157,6 +152,8 @@ public final class MyriadBasePlugin extends JavaPlugin {
         lifecycleManager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands commands = event.registrar();
             commands.register(GameCommandNodes.lobbyNode(controlUnit));
+            commands.register(StaffCommandNodes.launch());
+            commands.register(StaffCommandNodes.vanish());
         });
 
         Bukkit.getPluginManager().registerEvents(new ChatListener(), this);
@@ -166,6 +163,5 @@ public final class MyriadBasePlugin extends JavaPlugin {
     public void onDisable() {
         controlUnit.close();
         redisConnector.disconnect();
-        mongoConnector.disconnect();
     }
 }
