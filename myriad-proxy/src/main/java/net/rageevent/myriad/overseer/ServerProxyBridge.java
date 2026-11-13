@@ -6,6 +6,7 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerInfo;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.rageevent.governor.api.EnvelopeAgent;
@@ -25,7 +26,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
-@RequiredArgsConstructor
+@Slf4j @RequiredArgsConstructor
 public class ServerProxyBridge implements EnvelopeCarrier {
 
     private final ProxyServer proxyServer;
@@ -58,7 +59,12 @@ public class ServerProxyBridge implements EnvelopeCarrier {
         ServerType addedServerGroup = added.serverType();
         groups.put(addedServerName, addedServerGroup);
 
-        if (added.host() == null || proxyServer.getServer(addedServerName).isPresent()) {
+        if (added.host() == null) {
+            logger.warn(Text.convert("<red>Failed to add server. <gray>(NO HOST ADDRESS)"));
+            return;
+        }
+
+        if (proxyServer.getServer(addedServerName).isPresent()) {
             logger.warn(Text.convert("<red>Server <yellow>'%s'</yellow> is already registered.".formatted(addedServerName)));
             return;
         }

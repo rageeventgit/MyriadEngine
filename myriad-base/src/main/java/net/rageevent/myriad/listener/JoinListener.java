@@ -7,6 +7,7 @@ import net.rageevent.myriad.MyriadBasePlugin;
 import net.rageevent.myriad.api.player.UserRank;
 import net.rageevent.myriad.api.player.stats.BasePlayerStats;
 import net.rageevent.myriad.api.player.stats.StaffPlayerStats;
+import net.rageevent.myriad.queries.PlayerHasSectionQuery;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -25,12 +26,9 @@ public class JoinListener implements Listener {
     public void onJoin(AsyncPlayerPreLoginEvent event) {
         UUID player = event.getUniqueId();
         if (BasePlayerStats.RANK.get(player, UserRank.class) != UserRank.ADMIN) return;
-        controlUnit.ship(new PullUserData(player, StaffPlayerStats.VANISHED.section())).whenComplete((userDataResponse, throwable) -> {
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                if(throwable != null)
-                    System.out.println(throwable.getMessage() + ": " + throwable.getClass().getSimpleName());
-                System.out.println(userDataResponse.message());
-            }, 0);
+        plugin.getRedisConnector().post(new PlayerHasSectionQuery(player, StaffPlayerStats.VANISHED.section())).whenComplete((result, _) -> {
+            if (result.failed())
+                controlUnit.ship(new PullUserData(player, StaffPlayerStats.VANISHED.section(), false));
         });
     }
 }

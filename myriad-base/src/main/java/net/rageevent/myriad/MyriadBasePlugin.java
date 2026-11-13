@@ -1,5 +1,7 @@
 package net.rageevent.myriad;
 
+import dev.quartz.paper.QuartzPaper;
+import dev.quartz.paper.QuartzPlugin;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
@@ -7,7 +9,10 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import net.rageevent.fern.ServerManifest;
 import net.rageevent.governor.api.ControlUnit;
+import net.rageevent.governor.api.server.GameMetaData;
 import net.rageevent.governor.api.server.ServerProfile;
+import net.rageevent.governor.api.shipments.network.server.RegisterGameServer;
+import net.rageevent.governor.api.shipments.network.server.SupplyGameProfile;
 import net.rageevent.myriad.api.database.api.communication.LettuceDatabaseInteractor;
 import net.rageevent.myriad.api.database.api.database.MessagingDatabaseConnection;
 import net.rageevent.myriad.api.database.redis.RedisConnectionInfo;
@@ -100,16 +105,21 @@ public final class MyriadBasePlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         Text.initialize(new ArrayList<>());
+
         int hostPort = Integer.parseInt(FlagParser.getFlag("hub.port"));
         String hostConnection = FlagParser.getFlag("hub.host");
-
         String redisPassword = FlagParser.getFlag("redis.p");
-
         Path serverDirectory = Bukkit.getWorldContainer().toPath();
+
+        String serverHost = System.getenv("FERN_HOST");
+        int serverPort = Integer.parseInt(System.getenv("FERN_PORT"));
 
         serverManifest = ServerManifest.read(serverDirectory);
 
-        Optional<ServerType> serverType = ServerType.TYPES.stream().filter(comparedType -> comparedType.id().equalsIgnoreCase(serverManifest.field("gametype", LobbyType.MAIN.name()))).findFirst();
+        String serverName = serverManifest.name();
+
+        Optional<ServerType> serverType =
+                ServerType.TYPES.stream().filter(comparedType -> comparedType.id().equalsIgnoreCase(serverManifest.field("gametype", LobbyType.MAIN.name()))).findFirst();
 
         if (serverType.isEmpty()) {
             getComponentLogger().error(Text.convert("<red>Failed to find a valid gametype"));
@@ -121,30 +131,33 @@ public final class MyriadBasePlugin extends JavaPlugin {
                         .filter(comparedType -> comparedType.name().equalsIgnoreCase(serverManifest.field("mode").orElse(null))).findFirst();
 
         getComponentLogger().debug(Text.convert("<yellow>Server Type: <aqua>" + serverType.get().id() + " " + serverType.get().visualName()));
-        ServerModeType serverModeType = modeType.orElse(null);
+        ServerProfile serverProfile = ServerProfile.backend(serverType.get(), serverHost, serverPort, 25);
 
-        if (serverModeType != null) {
-            getComponentLogger().debug(Text.convert("<yellow>Mode: <green>${modeType.get().visualName()} <gray>(${modeType.get().name()}"));
-        }
-
-        ServerProfile serverProfile = ServerProfile.backend(serverType.get(), serverModeType, 25);
-
-        controlUnit = new ControlUnit(new ControlUnit.Connection(serverManifest.name(), hostConnection, hostPort), serverProfile);
+        controlUnit = new ControlUnit(new ControlUnit.Connection(serverName, hostConnection, hostPort), serverProfile);
         controlUnit.connect().whenComplete(((parcelConnection, throwable) -> {
             if (throwable != null) {
                 getComponentLogger().error(Text.convert("<red>%s <gray>(%s)".formatted(throwable.getLocalizedMessage(), throwable.getClass().getSimpleName())));
                 return;
             }
             getComponentLogger().debug(Text.convert("<green>Successfully connect to <yellow>Governor</yellow>. <gray>(%s)".formatted(parcelConnection.name())));
+
+            modeType.ifPresent(serverModeType -> {
+                String mapName = QuartzPaper.get().startupWorldName().orElse("");
+                if(mapName.isEmpty()) return;
+                mapName = mapName.replace(".qtz","");
+                controlUnit.deliver(new SupplyGameProfile(serverName, new GameMetaData(serverModeType, mapName)));
+                getComponentLogger().debug(Text.convert("<yellow>Mode: <green>${modeType.get().visualName()} <gray>(${modeType.get().name()}"));
+            });
         }));
         redisConnector = new RedisDatabaseConnection(new RedisConnectionInfo("127.0.0.1", 6379, "default", redisPassword));
         redisConnector.connect();
+
         DataAccessor.connection(redisConnector);
+
         getServer().getServicesManager().register(ControlUnit.class, controlUnit, this, ServicePriority.High);
         getServer().getServicesManager().register(ServerManifest.class, serverManifest, this, ServicePriority.High);
 
         LifecycleEventManager<Plugin> lifecycleManager = getLifecycleManager();
-
         lifecycleManager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands commands = event.registrar();
             commands.register(GameCommandNodes.lobbyNode(controlUnit));
@@ -152,8 +165,9 @@ public final class MyriadBasePlugin extends JavaPlugin {
             commands.register(StaffCommandNodes.vanish());
         });
 
+
         Bukkit.getPluginManager().registerEvents(new ChatListener(), this);
-        Bukkit.getPluginManager().registerEvents(new JoinListener(this,controlUnit),this);
+        Bukkit.getPluginManager().registerEvents(new JoinListener(this, controlUnit), this);
     }
 
     @Override
