@@ -23,7 +23,14 @@ public class StaffCommandNodes {
         return literal("vanish").requires(CommandChecks.isStaffRank()).executes(context -> {
             Player player = context.getSource().getPlayerOrThrow();
             DataContainer vanished = StaffPlayerStats.VANISHED;
-            vanished.set(player.getUniqueId(),!vanished.get(player.getUniqueId(), Boolean.class));
+            boolean newValue = !vanished.get(player.getUniqueId(), Boolean.class);
+
+            if(newValue){
+                player.sendMessage(Text.convert("<yellow>Vanished!"));
+            }else
+                player.sendMessage(Text.convert("<blue>Unvanished!"));
+
+            vanished.set(player.getUniqueId(),newValue);
             return 1;
         }).build();
     }

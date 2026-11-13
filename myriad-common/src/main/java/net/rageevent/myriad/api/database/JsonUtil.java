@@ -55,6 +55,7 @@ public class JsonUtil {
     public static JsonNode toMergePatch(String dottedPath, JsonNode node) {
         // Already wrapped? e.g. {"stats":{"kills":5}} for "stats.kills"
         if (node.isObject() && !node.at("/" + dottedPath.replace('.', '/')).isMissingNode()) {
+            ((ObjectNode) node).remove("_id");
             return node;
         }
         // Bare value, e.g. 5 or {"kills":5}

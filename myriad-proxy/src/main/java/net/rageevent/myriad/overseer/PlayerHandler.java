@@ -18,6 +18,7 @@ import net.rageevent.governor.api.ControlUnit;
 import net.rageevent.governor.api.EnvelopeAgent;
 import net.rageevent.governor.api.EnvelopeCarrier;
 import net.rageevent.governor.api.EnvelopeConnection;
+import net.rageevent.governor.api.exceptions.GovernorException;
 import net.rageevent.governor.api.protocol.ConnectionListener;
 import net.rageevent.governor.api.shipments.network.player.PlayerJoinedNetwork;
 import net.rageevent.governor.api.shipments.network.player.PlayerLeftNetwork;
@@ -44,6 +45,7 @@ import net.rageevent.myriad.api.queries.redis.user.SetUserDataQuery;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @RequiredArgsConstructor
 public class PlayerHandler implements EnvelopeCarrier, ConnectionListener {
@@ -53,6 +55,26 @@ public class PlayerHandler implements EnvelopeCarrier, ConnectionListener {
     private final DatabaseConnection<BsonDatabaseInteractor> mongoConnector;
     private final MessagingDatabaseConnection<LettuceDatabaseInteractor> redisConnector;
     private final ControlUnit controlUnit;
+
+    @Override
+    public void register(EnvelopeAgent envelopeAgent) {
+        envelopeAgent.onAsyncTransaction(PullUserData.class, (envelopeConnection, pullUserData) -> {
+            UUID player = pullUserData.player();
+            String section = pullUserData.section();
+            return mongoConnector.interactor()
+                    .nested(MongoCollections.PLAYERS, MongoQueryKey.id(player.toString()), List.of(section))
+                    .thenCompose(result -> {
+                        if (result.failed()) {
+                            return CompletableFuture.failedFuture(
+                                    new GovernorException("Couldn't load '" + section + "' for " + player));
+                        }
+                        var patch = JsonUtil.toMergePatch(section, JsonUtil.OBJECT_MAPPER.valueToTree(result.object()));
+                        return redisConnector.interactor()
+                                .append(new QueryKey("user", player.toString()), "$", patch)
+                                .thenApply(written -> new UserDataResponse("Successfully found data"));
+                    });
+        });
+    }
 
     @Subscribe
     public void onPreLogin(PreLoginEvent event) {
@@ -122,21 +144,5 @@ public class PlayerHandler implements EnvelopeCarrier, ConnectionListener {
         return player.getCurrentServer().map(ServerConnection::getServerInfo).map(ServerInfo::getName).orElse(null);
     }
 
-    @Override
-    public void register(EnvelopeAgent envelopeAgent) {
-        envelopeAgent.on(PullUserData.class, ((envelopeConnection, pullUserData) -> {
-            UUID player = pullUserData.player();
-            mongoConnector.interactor().nested(MongoCollections.PLAYERS, MongoQueryKey.id(player.toString()), List.of(pullUserData.container().dotNotation()))
-                    .whenComplete((result, error) -> {
-                        if (error != null) return;
-                        if (result.failed()) return;
-                        redisConnector.interactor().append(
-                                new QueryKey("user", player.toString()),
-                                "$",
-                                JsonUtil.toMergePatch(pullUserData.container().dotNotation(),
-                                        JsonUtil.OBJECT_MAPPER.valueToTree(result.object()))
-                        );
-                    });
-        }));
-    }
+
 }

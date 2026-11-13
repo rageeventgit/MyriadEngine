@@ -8,16 +8,11 @@ import lombok.SneakyThrows;
 import net.rageevent.fern.ServerManifest;
 import net.rageevent.governor.api.ControlUnit;
 import net.rageevent.governor.api.server.ServerProfile;
-import net.rageevent.myriad.api.player.stats.StaffPlayerStats;
-import net.rageevent.myriad.api.player.store.DataAccessor;
 import net.rageevent.myriad.api.database.api.communication.LettuceDatabaseInteractor;
-import net.rageevent.myriad.api.database.api.database.DatabaseConnection;
 import net.rageevent.myriad.api.database.api.database.MessagingDatabaseConnection;
-import net.rageevent.myriad.api.database.api.mongo.BsonDatabaseInteractor;
-import net.rageevent.myriad.api.database.mongo.MongoConnectionInfo;
-import net.rageevent.myriad.api.database.mongo.MongoDatabaseConnection;
 import net.rageevent.myriad.api.database.redis.RedisConnectionInfo;
 import net.rageevent.myriad.api.database.redis.RedisDatabaseConnection;
+import net.rageevent.myriad.api.player.store.DataAccessor;
 import net.rageevent.myriad.api.server.LobbyType;
 import net.rageevent.myriad.api.server.ServerModeType;
 import net.rageevent.myriad.api.server.ServerType;
@@ -25,6 +20,7 @@ import net.rageevent.myriad.commands.GameCommandNodes;
 import net.rageevent.myriad.commands.StaffCommandNodes;
 import net.rageevent.myriad.interals.FlagParser;
 import net.rageevent.myriad.listener.ChatListener;
+import net.rageevent.myriad.listener.JoinListener;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicePriority;
@@ -157,6 +153,7 @@ public final class MyriadBasePlugin extends JavaPlugin {
         });
 
         Bukkit.getPluginManager().registerEvents(new ChatListener(), this);
+        Bukkit.getPluginManager().registerEvents(new JoinListener(this,controlUnit),this);
     }
 
     @Override

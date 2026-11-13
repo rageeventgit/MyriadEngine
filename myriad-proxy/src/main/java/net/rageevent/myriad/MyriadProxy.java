@@ -55,13 +55,14 @@ public class MyriadProxy {
 
         redisConnector = new RedisDatabaseConnection(new RedisConnectionInfo("127.0.0.1", 6379, "default", redisPassword));
         mongoConnector = new MongoDatabaseConnection(new MongoConnectionInfo("mongodb://127.0.0.1:27017/", "fern", "admin", mongoPassword));
-
+        redisConnector.connect();
+        mongoConnector.connect();
 
         controlUnit = new ControlUnit(new ControlUnit.Connection(serverManifest.name(), hostConnection, hostPort), ServerProfile.proxy());
 
-        PlayerHandler playerHandler = new PlayerHandler(proxyServer,logger, mongoConnector, redisConnector, controlUnit);
-        controlUnit
-                .install(new ServerProxyBridge(proxyServer, logger))
+        PlayerHandler playerHandler = new PlayerHandler(proxyServer, logger, mongoConnector, redisConnector, controlUnit);
+        controlUnit.install(new ServerProxyBridge(proxyServer, logger))
+                .install(playerHandler)
                 .listen(playerHandler);
 
         proxyServer.getEventManager().register(this, playerHandler);
@@ -73,11 +74,6 @@ public class MyriadProxy {
             }
             logger.debug(Text.convert("<green>Successfully connect to <yellow>Governor</yellow>. <gray>(${parcelConnection.name()})"));
         }));
-
-        redisConnector.connect();
-
-        mongoConnector.connect();
-
     }
 
     @Subscribe
@@ -85,5 +81,4 @@ public class MyriadProxy {
         if (controlUnit != null && controlUnit.connected())
             controlUnit.close();
     }
-
 }
