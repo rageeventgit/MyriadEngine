@@ -13,10 +13,13 @@ public class CommandChecks {
     public Predicate<CommandSourceStack> isPlayer() {
         return stack -> stack.getSender() instanceof Player;
     }
+
     public Predicate<CommandSourceStack> isStaffRank() {
         return stack -> {
-            if(!(stack.getSender() instanceof Player player)) return false;
+            if (!(stack.getSender() instanceof Player player)) return false;
+
             return player.getPlayerRank() == UserRank.ADMIN;
         };
     }
+
 }

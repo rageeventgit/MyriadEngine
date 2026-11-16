@@ -6,6 +6,7 @@ import com.mongodb.ServerAddress;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.rageevent.myriad.api.database.api.database.DatabaseConnection;
 import net.rageevent.myriad.api.database.api.mongo.BsonDatabaseInteractor;

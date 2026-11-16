@@ -6,7 +6,7 @@
 
     <groupId>net.rageevent</groupId>
     <artifactId>myriad-common</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
 
     <properties>
         <maven.compiler.source>27</maven.compiler.source>

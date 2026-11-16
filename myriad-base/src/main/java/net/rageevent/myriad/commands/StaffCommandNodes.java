@@ -34,34 +34,11 @@ public class StaffCommandNodes {
             return 1;
         }).build();
     }
-
-    public LiteralCommandNode<CommandSourceStack> launch() {
-        return literal("launch").requires(CommandChecks.isStaffRank())
-                .then(literal("all").executes(context -> {
-                    CommandSourceStack source = context.getSource();
-
-                    Player player = source.getPlayerOrThrow();
-                    for (Player otherPlayer : Bukkit.getOnlinePlayers()) {
-                        launchEntity(player, otherPlayer);
-                    }
-
-                    return 1;
-                }))
-                .then(argument("target", ArgumentTypes.entities()).executes(context -> {
-                    CommandSourceStack source = context.getSource();
-                    final EntitySelectorArgumentResolver resolver = context.getArgument("target", EntitySelectorArgumentResolver.class);
-                    Player player = source.getPlayerOrThrow();
-                    for (Entity entity : resolver.resolve(source)) {
-                        launchEntity(player, entity);
-
-                    }
-                    return 1;
-                }))
-                .build();
-    }
-
-    private void launchEntity(Player player, Entity entity) {
-        entity.setVelocity(entity.getVelocity().add(new Vector(0, 10, 0)));
-        player.sendMessage(Text.convert("<green>Launched ${entity.getName()}"));
+    public LiteralCommandNode<CommandSourceStack> staffChat() {
+        return literal("staffchat").requires(CommandChecks.isStaffRank()).executes(context -> {
+            Player player = context.getSource().getPlayerOrThrow();
+            //TODO: Make a broadcast message request
+            return 1;
+        }).build();
     }
 }

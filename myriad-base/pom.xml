@@ -120,12 +120,17 @@
         <dependency>
             <groupId>net.rageevent</groupId>
             <artifactId>myriad-common</artifactId>
-            <version>1.1.0</version>
+            <version>1.2.0</version>
         </dependency>
         <dependency>
             <groupId>io.lettuce</groupId>
             <artifactId>lettuce-core</artifactId>
             <version>7.9.0.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.datum</groupId>
+            <artifactId>datum-api</artifactId>
+            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.mongodb</groupId>
@@ -136,7 +141,7 @@
         <dependency>
             <groupId>dev.quartz</groupId>
             <artifactId>quartz-paper</artifactId>
-            <version>1.1.0</version>
+            <version>1.2.0</version>
         </dependency>
     </dependencies>
 </project>
